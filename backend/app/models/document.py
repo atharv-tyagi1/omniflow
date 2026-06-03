@@ -22,7 +22,9 @@ class Document(Base):
     name = Column(String(255), nullable=False)
     file_type = Column(String(50), nullable=False)
     file_url = Column(Text, nullable=False)
-    status = Column(String(50), nullable=False, default="pending")  # pending | processing | ready | failed
+    status = Column(
+        String(50), nullable=False, default="pending"
+    )  # pending | processing | ready | failed
     uploaded_by = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

@@ -10,16 +10,10 @@ from backend.app.models.workflow_run import WorkflowRun
 class WorkflowController:
     @staticmethod
     async def create(
-        db: AsyncSession, 
-        workspace_id: UUID, 
-        name: str, 
-        trigger_type: str
+        db: AsyncSession, workspace_id: UUID, name: str, trigger_type: str
     ) -> Workflow:
         return await WorkflowService.create_workflow(
-            db=db,
-            workspace_id=workspace_id,
-            name=name,
-            trigger_type=trigger_type
+            db=db, workspace_id=workspace_id, name=name, trigger_type=trigger_type
         )
 
     @staticmethod
@@ -27,17 +21,15 @@ class WorkflowController:
         return await WorkflowService.list_workflows(db, workspace_id)
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, workflow_id: UUID, workspace_id: UUID) -> Workflow:
+    async def get_by_id(
+        db: AsyncSession, workflow_id: UUID, workspace_id: UUID
+    ) -> Workflow:
         return await WorkflowService.get_workflow(db, workflow_id, workspace_id)
 
     @staticmethod
     async def trigger(
-        db: AsyncSession, 
-        workspace_id: UUID, 
-        workflow_id: UUID
+        db: AsyncSession, workspace_id: UUID, workflow_id: UUID
     ) -> WorkflowRun:
         return await WorkflowService.trigger_workflow(
-            db=db,
-            workspace_id=workspace_id,
-            workflow_id=workflow_id
+            db=db, workspace_id=workspace_id, workflow_id=workflow_id
         )

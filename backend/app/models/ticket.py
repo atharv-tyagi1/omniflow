@@ -31,8 +31,12 @@ class Ticket(Base):
     )
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    priority = Column(String(20), nullable=False, default="medium")  # low | medium | high | critical
-    status = Column(String(20), nullable=False, default="open")  # open | in_progress | resolved | closed
+    priority = Column(
+        String(20), nullable=False, default="medium"
+    )  # low | medium | high | critical
+    status = Column(
+        String(20), nullable=False, default="open"
+    )  # open | in_progress | resolved | closed
     assigned_to = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

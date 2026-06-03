@@ -6,12 +6,16 @@ from typing import Optional
 
 class DocumentParser:
     """Strategy interface for extracting text from raw file bytes."""
-    
+
     @staticmethod
     def parse(file_bytes: bytes, file_type: str) -> Optional[str]:
         if file_type == "application/pdf" or file_type == "pdf":
             return DocumentParser._parse_pdf(file_bytes)
-        elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or file_type == "docx":
+        elif (
+            file_type
+            == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            or file_type == "docx"
+        ):
             return DocumentParser._parse_docx(file_bytes)
         elif file_type == "text/plain" or file_type == "txt":
             return DocumentParser._parse_txt(file_bytes)
@@ -29,7 +33,9 @@ class DocumentParser:
     @staticmethod
     def _parse_docx(file_bytes: bytes) -> str:
         doc = docx.Document(io.BytesIO(file_bytes))
-        return "\n\n".join([paragraph.text for paragraph in doc.paragraphs if paragraph.text])
+        return "\n\n".join(
+            [paragraph.text for paragraph in doc.paragraphs if paragraph.text]
+        )
 
     @staticmethod
     def _parse_txt(file_bytes: bytes) -> str:

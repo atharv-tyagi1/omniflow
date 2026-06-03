@@ -17,6 +17,7 @@ from backend.app.core.response import error_response
 from backend.app.core.scheduler import BackgroundScheduler
 from backend.app.services.telegram_service import TelegramService
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     await BackgroundScheduler.stop()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -49,9 +51,15 @@ app.include_router(conversations_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
 app.include_router(datasets_router, prefix=settings.API_V1_STR)
 app.include_router(workflows_router, prefix=settings.API_V1_STR)
-app.include_router(analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
-app.include_router(analyst_router, tags=["analyst"])  # Mounts /api/query and /api/limits
+app.include_router(
+    analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"]
+)
+app.include_router(
+    analyst_router, tags=["analyst"]
+)  # Mounts /api/query and /api/limits
 app.include_router(telegram_router, prefix=settings.API_V1_STR)
+
+
 # Global custom exception handler
 @app.exception_handler(OmniFlowError)
 async def omniflow_exception_handler(request: Request, exc: OmniFlowError):
@@ -63,36 +71,37 @@ async def omniflow_exception_handler(request: Request, exc: OmniFlowError):
         status_code = 403
     elif exc.code == "NOT_FOUND":
         status_code = 404
-        
+
     return JSONResponse(
         status_code=status_code,
-        content=error_response(code=exc.code, message=exc.message)
+        content=error_response(code=exc.code, message=exc.message),
     )
+
 
 # Fallback general exception handler
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content=error_response(code="INTERNAL_SERVER_ERROR", message=str(exc))
+        content=error_response(code="INTERNAL_SERVER_ERROR", message=str(exc)),
     )
+
 
 @app.get("/")
 def read_root():
     return {
         "message": "Welcome to OmniFlow AI-Native Customer Operations Platform API",
         "version": settings.VERSION,
-        "status": "healthy"
+        "status": "healthy",
     }
+
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "database": "unverified",
-        "gemini": "unverified"
-    }
+    return {"status": "healthy", "database": "unverified", "gemini": "unverified"}
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -51,7 +51,9 @@ Strict prohibitions:
     @classmethod
     def _get_client(cls) -> genai.Client:
         if cls._client is None:
-            api_key = getattr(settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+            api_key = getattr(
+                settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")
+            )
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is not configured.")
             cls._client = genai.Client(api_key=api_key)
@@ -61,7 +63,7 @@ Strict prohibitions:
         self,
         message: str,
         conversation_history: Optional[list[str]] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
     ) -> AgentResponse:
         client = self._get_client()
 
@@ -76,8 +78,15 @@ Strict prohibitions:
 
         system_with_context = self.SYSTEM_PROMPT + context_block
 
-        contents = [{"role": "user", "parts": [{"text": system_with_context}]},
-                    {"role": "model", "parts": [{"text": "Understood. I am the Sales Agent. How can I help?"}]}]
+        contents = [
+            {"role": "user", "parts": [{"text": system_with_context}]},
+            {
+                "role": "model",
+                "parts": [
+                    {"text": "Understood. I am the Sales Agent. How can I help?"}
+                ],
+            },
+        ]
 
         if conversation_history:
             for i, turn in enumerate(conversation_history[-8:]):
@@ -94,14 +103,11 @@ Strict prohibitions:
             return AgentResponse(
                 content=response.text.strip(),
                 agent_type=self.agent_type,
-                metadata={
-                    "model": "gemini-2.0-flash",
-                    "rag_used": bool(context_block)
-                }
+                metadata={"model": "gemini-2.0-flash", "rag_used": bool(context_block)},
             )
         except Exception as e:
             logger.error(f"SalesAgent failed to generate response: {e}")
             return AgentResponse(
                 content="I'm here to help with any questions about our products. Could you tell me more about what you're looking for?",
-                agent_type=self.agent_type
+                agent_type=self.agent_type,
             )

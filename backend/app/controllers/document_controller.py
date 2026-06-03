@@ -11,13 +11,13 @@ from backend.app.models.document_chunk import DocumentChunk
 class DocumentController:
     @staticmethod
     async def upload(
-        db: AsyncSession, 
-        workspace_id: UUID, 
-        user_id: UUID, 
-        name: str, 
-        file_type: str, 
+        db: AsyncSession,
+        workspace_id: UUID,
+        user_id: UUID,
+        name: str,
+        file_type: str,
         file_url: str,
-        background_tasks: BackgroundTasks
+        background_tasks: BackgroundTasks,
     ) -> Document:
         doc = await KnowledgeService.create_document(
             db=db,
@@ -25,16 +25,16 @@ class DocumentController:
             user_id=user_id,
             name=name,
             file_type=file_type,
-            file_url=file_url
+            file_url=file_url,
         )
-        
+
         # Dispatch heavy RAG ingestion workload
         background_tasks.add_task(
             KnowledgeService.process_document_task,
             document_id=doc.id,
             workspace_id=workspace_id,
             file_url=file_url,
-            file_type=file_type
+            file_type=file_type,
         )
         return doc
 
@@ -43,9 +43,13 @@ class DocumentController:
         return await KnowledgeService.list_documents(db, workspace_id)
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, document_id: UUID, workspace_id: UUID) -> Document:
+    async def get_by_id(
+        db: AsyncSession, document_id: UUID, workspace_id: UUID
+    ) -> Document:
         return await KnowledgeService.get_document(db, document_id, workspace_id)
 
     @staticmethod
-    async def search(db: AsyncSession, workspace_id: UUID, query: str, limit: int = 5) -> List[DocumentChunk]:
+    async def search(
+        db: AsyncSession, workspace_id: UUID, query: str, limit: int = 5
+    ) -> List[DocumentChunk]:
         return await KnowledgeService.search_knowledge(db, workspace_id, query, limit)

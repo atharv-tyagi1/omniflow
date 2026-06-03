@@ -33,9 +33,7 @@ class DocumentChunk(Base):
     # Relationships
     document = relationship("Document", back_populates="chunks", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_chunks_document", "document_id"),
-    )
+    __table_args__ = (Index("idx_chunks_document", "document_id"),)
 
     def __repr__(self) -> str:
         return f"<DocumentChunk doc={self.document_id} idx={self.chunk_index}>"

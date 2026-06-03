@@ -21,7 +21,9 @@ class Notification(Base):
     )
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=True)
-    type = Column(String(50), nullable=False, default="info")  # info | warning | error | success
+    type = Column(
+        String(50), nullable=False, default="info"
+    )  # info | warning | error | success
     is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         DateTime(timezone=True),

@@ -5,27 +5,31 @@ from typing import Optional
 
 from backend.app.models.customer import Customer
 
+
 class CustomerRepository:
     @staticmethod
-    async def get_by_telegram_id(db: AsyncSession, telegram_id: str, workspace_id: UUID) -> Optional[Customer]:
+    async def get_by_telegram_id(
+        db: AsyncSession, telegram_id: str, workspace_id: UUID
+    ) -> Optional[Customer]:
         result = await db.execute(
-            select(Customer)
-            .where(Customer.telegram_id == telegram_id, Customer.workspace_id == workspace_id)
+            select(Customer).where(
+                Customer.telegram_id == telegram_id,
+                Customer.workspace_id == workspace_id,
+            )
         )
         return result.scalars().first()
 
     @staticmethod
     async def get_or_create_by_telegram_id(
-        db: AsyncSession, 
-        telegram_id: str, 
-        name: str, 
-        workspace_id: UUID
+        db: AsyncSession, telegram_id: str, name: str, workspace_id: UUID
     ) -> Customer:
         # Check if exists
-        existing = await CustomerRepository.get_by_telegram_id(db, telegram_id, workspace_id)
+        existing = await CustomerRepository.get_by_telegram_id(
+            db, telegram_id, workspace_id
+        )
         if existing:
             return existing
-        
+
         # Create new
         new_customer = Customer(
             workspace_id=workspace_id,

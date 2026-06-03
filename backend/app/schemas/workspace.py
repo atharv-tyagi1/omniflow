@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
-from typing import Optional, Dict, Any
+from typing import Optional
+
 
 class WorkspaceResponse(BaseModel):
     id: UUID
@@ -12,9 +13,11 @@ class WorkspaceResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class WorkspaceUpdateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     industry: Optional[str] = Field(None, max_length=100)
+
 
 class WorkspaceStatsResponse(BaseModel):
     users_count: int

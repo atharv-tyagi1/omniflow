@@ -8,7 +8,11 @@ class RateLimiter:
     No external dependencies (like Redis) needed for local dev.
     """
 
-    def __init__(self, per_minute: int = settings.RATE_LIMIT_PER_MINUTE, per_day: int = settings.RATE_LIMIT_PER_DAY):
+    def __init__(
+        self,
+        per_minute: int = settings.RATE_LIMIT_PER_MINUTE,
+        per_day: int = settings.RATE_LIMIT_PER_DAY,
+    ):
         self.per_minute = per_minute
         self.per_day = per_day
         self.minute_requests: list[float] = []

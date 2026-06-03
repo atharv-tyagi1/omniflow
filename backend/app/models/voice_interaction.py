@@ -29,11 +29,11 @@ class VoiceInteraction(Base):
     )
 
     # Relationships
-    conversation = relationship("Conversation", back_populates="voice_interactions", lazy="selectin")
-
-    __table_args__ = (
-        Index("idx_voice_conversation", "conversation_id"),
+    conversation = relationship(
+        "Conversation", back_populates="voice_interactions", lazy="selectin"
     )
+
+    __table_args__ = (Index("idx_voice_conversation", "conversation_id"),)
 
     def __repr__(self) -> str:
         return f"<VoiceInteraction {self.id}>"

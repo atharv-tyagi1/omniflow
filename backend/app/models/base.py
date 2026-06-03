@@ -1,15 +1,14 @@
 """Base model with common columns shared by all OmniFlow tables."""
 
-import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
     """Declarative base for all OmniFlow models."""
+
     pass
 
 

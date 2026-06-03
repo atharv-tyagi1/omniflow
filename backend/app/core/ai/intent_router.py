@@ -16,6 +16,7 @@ VALID_INTENTS = {"sales", "support", "customer_care", "unknown"}
 @dataclass
 class IntentResult:
     """Structured output from the Router Agent, per the mandated output format."""
+
     primary_intent: str
     secondary_intent: Optional[str]
     confidence: float
@@ -24,7 +25,7 @@ class IntentResult:
         return {
             "primary_intent": self.primary_intent,
             "secondary_intent": self.secondary_intent,
-            "confidence": self.confidence
+            "confidence": self.confidence,
         }
 
 
@@ -73,14 +74,18 @@ Rules:
     @classmethod
     def _get_client(cls) -> genai.Client:
         if cls._client is None:
-            api_key = getattr(settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+            api_key = getattr(
+                settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")
+            )
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is not configured.")
             cls._client = genai.Client(api_key=api_key)
         return cls._client
 
     @classmethod
-    async def classify(cls, message: str, conversation_history: Optional[list[str]] = None) -> IntentResult:
+    async def classify(
+        cls, message: str, conversation_history: Optional[list[str]] = None
+    ) -> IntentResult:
         """
         Classifies a customer message into one of the approved agent categories.
 
@@ -96,16 +101,25 @@ Rules:
         # Build context-aware prompt
         context_block = ""
         if conversation_history:
-            context_block = "Recent conversation context:\n" + "\n".join(conversation_history[-6:]) + "\n\n"
+            context_block = (
+                "Recent conversation context:\n"
+                + "\n".join(conversation_history[-6:])
+                + "\n\n"
+            )
 
-        prompt = f"{context_block}Customer message to classify:\n\"{message}\""
+        prompt = f'{context_block}Customer message to classify:\n"{message}"'
 
         try:
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
                 contents=[
                     {"role": "user", "parts": [{"text": cls.SYSTEM_PROMPT}]},
-                    {"role": "model", "parts": [{"text": "Understood. I will respond only with valid JSON."}]},
+                    {
+                        "role": "model",
+                        "parts": [
+                            {"text": "Understood. I will respond only with valid JSON."}
+                        ],
+                    },
                     {"role": "user", "parts": [{"text": prompt}]},
                 ],
             )
@@ -127,7 +141,9 @@ Rules:
 
             # Sanitize: enforce only approved intent values
             if primary not in VALID_INTENTS:
-                logger.warning(f"Gemini returned invalid primary intent '{primary}', defaulting to 'unknown'")
+                logger.warning(
+                    f"Gemini returned invalid primary intent '{primary}', defaulting to 'unknown'"
+                )
                 primary = "unknown"
             if secondary and secondary not in VALID_INTENTS:
                 secondary = None
@@ -135,12 +151,16 @@ Rules:
             return IntentResult(
                 primary_intent=primary,
                 secondary_intent=secondary,
-                confidence=round(confidence, 4)
+                confidence=round(confidence, 4),
             )
 
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"IntentRouter failed to parse Gemini response: {e}")
-            return IntentResult(primary_intent="unknown", secondary_intent=None, confidence=0.0)
+            return IntentResult(
+                primary_intent="unknown", secondary_intent=None, confidence=0.0
+            )
         except Exception as e:
             logger.error(f"IntentRouter encountered an unexpected error: {e}")
-            return IntentResult(primary_intent="unknown", secondary_intent=None, confidence=0.0)
+            return IntentResult(
+                primary_intent="unknown", secondary_intent=None, confidence=0.0
+            )

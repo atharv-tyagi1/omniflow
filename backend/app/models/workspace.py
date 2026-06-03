@@ -21,9 +21,7 @@ class Workspace(Base, TimestampMixin):
     # Relationships
     users = relationship("User", back_populates="workspace", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_workspaces_status", "status"),
-    )
+    __table_args__ = (Index("idx_workspaces_status", "status"),)
 
     def __repr__(self) -> str:
         return f"<Workspace {self.name} ({self.id})>"

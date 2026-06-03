@@ -53,7 +53,9 @@ Keep responses warm, genuine, and action-oriented."""
     @classmethod
     def _get_client(cls) -> genai.Client:
         if cls._client is None:
-            api_key = getattr(settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+            api_key = getattr(
+                settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")
+            )
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is not configured.")
             cls._client = genai.Client(api_key=api_key)
@@ -63,7 +65,7 @@ Keep responses warm, genuine, and action-oriented."""
         self,
         message: str,
         conversation_history: Optional[list[str]] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
     ) -> AgentResponse:
         client = self._get_client()
 
@@ -78,8 +80,17 @@ Keep responses warm, genuine, and action-oriented."""
 
         system_with_context = self.SYSTEM_PROMPT + context_block
 
-        contents = [{"role": "user", "parts": [{"text": system_with_context}]},
-                    {"role": "model", "parts": [{"text": "Understood. I am the Customer Care Agent. I will prioritize empathy and follow company policy."}]}]
+        contents = [
+            {"role": "user", "parts": [{"text": system_with_context}]},
+            {
+                "role": "model",
+                "parts": [
+                    {
+                        "text": "Understood. I am the Customer Care Agent. I will prioritize empathy and follow company policy."
+                    }
+                ],
+            },
+        ]
 
         if conversation_history:
             for i, turn in enumerate(conversation_history[-8:]):
@@ -96,14 +107,11 @@ Keep responses warm, genuine, and action-oriented."""
             return AgentResponse(
                 content=response.text.strip(),
                 agent_type=self.agent_type,
-                metadata={
-                    "model": "gemini-2.0-flash",
-                    "rag_used": bool(context_block)
-                }
+                metadata={"model": "gemini-2.0-flash", "rag_used": bool(context_block)},
             )
         except Exception as e:
             logger.error(f"CustomerCareAgent failed to generate response: {e}")
             return AgentResponse(
                 content="I completely understand your frustration, and I'm truly sorry for this experience. Let me look into this right away and make sure we get this resolved for you.",
-                agent_type=self.agent_type
+                agent_type=self.agent_type,
             )

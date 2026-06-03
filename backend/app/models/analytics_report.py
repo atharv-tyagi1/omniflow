@@ -30,9 +30,7 @@ class AnalyticsReport(Base):
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_reports_workspace", "workspace_id"),
-    )
+    __table_args__ = (Index("idx_reports_workspace", "workspace_id"),)
 
     def __repr__(self) -> str:
         return f"<AnalyticsReport {self.report_type} ({self.id})>"

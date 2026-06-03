@@ -4,23 +4,24 @@ from uuid import UUID
 from typing import Optional, List, Dict, Any
 from backend.app.models.user import User
 
+
 class UserRepository:
     @staticmethod
     async def create(
-        db: AsyncSession, 
-        *, 
-        email: str, 
-        full_name: str, 
-        password_hash: str, 
-        role: str = "member", 
-        workspace_id: UUID
+        db: AsyncSession,
+        *,
+        email: str,
+        full_name: str,
+        password_hash: str,
+        role: str = "member",
+        workspace_id: UUID,
     ) -> User:
         db_obj = User(
             email=email,
             full_name=full_name,
             password_hash=password_hash,
             role=role,
-            workspace_id=workspace_id
+            workspace_id=workspace_id,
         )
         db.add(db_obj)
         await db.flush()

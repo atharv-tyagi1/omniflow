@@ -31,9 +31,7 @@ class DatasetQuery(Base):
     # Relationships
     dataset = relationship("Dataset", back_populates="queries", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_dataset_queries_dataset", "dataset_id"),
-    )
+    __table_args__ = (Index("idx_dataset_queries_dataset", "dataset_id"),)
 
     def __repr__(self) -> str:
         return f"<DatasetQuery {self.id}>"

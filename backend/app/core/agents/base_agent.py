@@ -6,6 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class AgentResponse:
     """Standardized response from any agent."""
+
     content: str
     agent_type: str
     metadata: Optional[dict] = None
@@ -36,7 +37,7 @@ class BaseAgent(ABC):
         self,
         message: str,
         conversation_history: Optional[list[str]] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
     ) -> AgentResponse:
         """
         Generate a response to the customer's message.

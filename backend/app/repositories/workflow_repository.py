@@ -11,23 +11,19 @@ from backend.app.models.workflow_run import WorkflowRun
 class WorkflowRepository:
     @staticmethod
     async def create(
-        db: AsyncSession,
-        *,
-        workspace_id: UUID,
-        name: str,
-        trigger_type: str
+        db: AsyncSession, *, workspace_id: UUID, name: str, trigger_type: str
     ) -> Workflow:
         db_obj = Workflow(
-            workspace_id=workspace_id,
-            name=name,
-            trigger_type=trigger_type
+            workspace_id=workspace_id, name=name, trigger_type=trigger_type
         )
         db.add(db_obj)
         await db.flush()
         return db_obj
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, workflow_id: UUID, workspace_id: UUID) -> Optional[Workflow]:
+    async def get_by_id(
+        db: AsyncSession, workflow_id: UUID, workspace_id: UUID
+    ) -> Optional[Workflow]:
         result = await db.execute(
             select(Workflow)
             .where(Workflow.id == workflow_id, Workflow.workspace_id == workspace_id)
@@ -50,24 +46,22 @@ class WorkflowRepository:
         *,
         workflow_id: UUID,
         status: str = "pending",
-        execution_log: Optional[Dict[str, Any]] = None
+        execution_log: Optional[Dict[str, Any]] = None,
     ) -> WorkflowRun:
         db_obj = WorkflowRun(
-            workflow_id=workflow_id,
-            status=status,
-            execution_log=execution_log
+            workflow_id=workflow_id, status=status, execution_log=execution_log
         )
         db.add(db_obj)
         await db.flush()
         return db_obj
-    
+
     @staticmethod
     async def update_run(
         db: AsyncSession,
         *,
         run_id: UUID,
         status: str,
-        execution_log: Optional[Dict[str, Any]] = None
+        execution_log: Optional[Dict[str, Any]] = None,
     ) -> Optional[WorkflowRun]:
         result = await db.execute(select(WorkflowRun).where(WorkflowRun.id == run_id))
         run = result.scalars().first()

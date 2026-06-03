@@ -19,9 +19,11 @@ if not TOKEN:
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 LOCAL_WEBHOOK_URL = "http://localhost:8000/api/v1/telegram/webhook"
 
+
 def delete_webhook():
     print("Deleting webhook to enable getUpdates polling...")
     requests.post(f"{API_URL}/deleteWebhook")
+
 
 def poll_updates():
     offset = None
@@ -38,22 +40,26 @@ def poll_updates():
                 print(f"Failed to get updates: {resp.text}")
                 time.sleep(2)
                 continue
-            
+
             data = resp.json()
             if not data.get("ok"):
                 print(f"Error from Telegram API: {data}")
                 time.sleep(2)
                 continue
-                
+
             updates = data.get("result", [])
             for update in updates:
                 # Forward to local webhook
                 try:
                     res = requests.post(LOCAL_WEBHOOK_URL, json=update)
-                    print(f"Forwarded update {update['update_id']} -> Local Server [{res.status_code}]")
+                    print(
+                        f"Forwarded update {update['update_id']} -> Local Server [{res.status_code}]"
+                    )
                 except requests.exceptions.ConnectionError:
-                    print(f"Error: Could not connect to local server at {LOCAL_WEBHOOK_URL}. Is it running?")
-                
+                    print(
+                        f"Error: Could not connect to local server at {LOCAL_WEBHOOK_URL}. Is it running?"
+                    )
+
                 # Increment offset so we don't process the same update again
                 offset = update["update_id"] + 1
 
@@ -63,6 +69,7 @@ def poll_updates():
         except Exception as e:
             print(f"Unexpected error: {e}")
             time.sleep(5)
+
 
 if __name__ == "__main__":
     delete_webhook()

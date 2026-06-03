@@ -1,10 +1,17 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
-from backend.app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
-from backend.app.core.exceptions import AuthenticationError, BusinessRuleError, NotFoundError
+from backend.app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
+from backend.app.core.exceptions import AuthenticationError, BusinessRuleError
 from backend.app.schemas.auth import SignupRequest, LoginRequest
 from uuid import UUID
+
 
 class AuthService:
     @staticmethod
@@ -16,13 +23,12 @@ class AuthService:
 
         # 1. Create workspace
         workspace = await WorkspaceRepository.create(
-            db, 
-            name=signup_data.workspace_name
+            db, name=signup_data.workspace_name
         )
-        
+
         # 2. Hash password
         pwd_hash = hash_password(signup_data.password)
-        
+
         # 3. Create user (role: owner for signup)
         user = await UserRepository.create(
             db,
@@ -30,23 +36,23 @@ class AuthService:
             full_name=signup_data.full_name,
             password_hash=pwd_hash,
             role="owner",
-            workspace_id=workspace.id
+            workspace_id=workspace.id,
         )
 
         # Generate tokens
         token_data = {
             "sub": str(user.id),
             "workspace_id": str(user.workspace_id),
-            "role": user.role
+            "role": user.role,
         }
-        
+
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)
 
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "user": user
+            "user": user,
         }
 
     @staticmethod
@@ -65,16 +71,16 @@ class AuthService:
         token_data = {
             "sub": str(user.id),
             "workspace_id": str(user.workspace_id),
-            "role": user.role
+            "role": user.role,
         }
-        
+
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)
 
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "user": user
+            "user": user,
         }
 
     @staticmethod
@@ -89,19 +95,18 @@ class AuthService:
 
         user = await UserRepository.get_by_id(db, UUID(user_id_str))
         if not user or user.status != "active":
-            raise AuthenticationError("User associated with token not found or inactive")
+            raise AuthenticationError(
+                "User associated with token not found or inactive"
+            )
 
         # Generate new tokens
         token_data = {
             "sub": str(user.id),
             "workspace_id": str(user.workspace_id),
-            "role": user.role
+            "role": user.role,
         }
-        
+
         new_access_token = create_access_token(token_data)
         new_refresh_token = create_refresh_token(token_data)
 
-        return {
-            "access_token": new_access_token,
-            "refresh_token": new_refresh_token
-        }
+        return {"access_token": new_access_token, "refresh_token": new_refresh_token}

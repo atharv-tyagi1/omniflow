@@ -10,12 +10,12 @@ from backend.app.models.dataset_query import DatasetQuery
 class DatasetController:
     @staticmethod
     async def upload(
-        db: AsyncSession, 
-        workspace_id: UUID, 
-        name: str, 
+        db: AsyncSession,
+        workspace_id: UUID,
+        name: str,
         file_url: str,
         row_count: Optional[int] = None,
-        column_count: Optional[int] = None
+        column_count: Optional[int] = None,
     ) -> Dataset:
         return await DatasetService.create_dataset(
             db=db,
@@ -23,7 +23,7 @@ class DatasetController:
             name=name,
             file_url=file_url,
             row_count=row_count,
-            column_count=column_count
+            column_count=column_count,
         )
 
     @staticmethod
@@ -31,19 +31,15 @@ class DatasetController:
         return await DatasetService.list_datasets(db, workspace_id)
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, dataset_id: UUID, workspace_id: UUID) -> Dataset:
+    async def get_by_id(
+        db: AsyncSession, dataset_id: UUID, workspace_id: UUID
+    ) -> Dataset:
         return await DatasetService.get_dataset(db, dataset_id, workspace_id)
 
     @staticmethod
     async def ask_question(
-        db: AsyncSession, 
-        workspace_id: UUID, 
-        dataset_id: UUID, 
-        question: str
+        db: AsyncSession, workspace_id: UUID, dataset_id: UUID, question: str
     ) -> DatasetQuery:
         return await DatasetService.query_dataset(
-            db=db,
-            workspace_id=workspace_id,
-            dataset_id=dataset_id,
-            question=question
+            db=db, workspace_id=workspace_id, dataset_id=dataset_id, question=question
         )

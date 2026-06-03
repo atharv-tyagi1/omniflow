@@ -12,20 +12,25 @@ rate_limiter = RateLimiter()
 
 # ========== Models ==========
 
+
 class QueryRequest(BaseModel):
     query: str
+
 
 class QueryResponse(BaseModel):
     response: Optional[str] = None
     error: Optional[str] = None
     remaining: Optional[Dict[str, Any]] = None
 
+
 # ========== Routes ==========
+
 
 @router.get("/api/limits")
 async def get_limits():
     """Get current rate limit status."""
     return rate_limiter.status()
+
 
 @router.post("/api/query", response_model=QueryResponse)
 async def process_query(request: QueryRequest):

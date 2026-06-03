@@ -1,7 +1,6 @@
 from uuid import UUID
-from typing import List, Optional, Dict, Any
+from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-import asyncio
 import httpx
 import logging
 
@@ -25,7 +24,7 @@ class KnowledgeService:
         user_id: UUID,
         name: str,
         file_type: str,
-        file_url: str
+        file_url: str,
     ) -> Document:
         doc = await DocumentRepository.create(
             db=db,
@@ -33,12 +32,14 @@ class KnowledgeService:
             name=name,
             file_type=file_type,
             file_url=file_url,
-            uploaded_by=user_id
+            uploaded_by=user_id,
         )
         return doc
 
     @staticmethod
-    async def process_document_task(document_id: UUID, workspace_id: UUID, file_url: str, file_type: str):
+    async def process_document_task(
+        document_id: UUID, workspace_id: UUID, file_url: str, file_type: str
+    ):
         """
         Background task to download, parse, chunk, embed, and store document data.
         """
@@ -56,7 +57,9 @@ class KnowledgeService:
                     raise ValueError("No text extracted from document")
 
                 # 3. Chunk text
-                chunker = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+                chunker = RecursiveCharacterTextSplitter(
+                    chunk_size=1000, chunk_overlap=200
+                )
                 text_chunks = chunker.split_text(extracted_text)
 
                 # 4. Generate embeddings
@@ -65,13 +68,15 @@ class KnowledgeService:
                 # 5. Store chunks
                 db_chunks = []
                 for idx, (text, emb) in enumerate(zip(text_chunks, embeddings)):
-                    db_chunks.append({
-                        "document_id": document_id,
-                        "chunk_index": idx,
-                        "content": text,
-                        "embedding": emb
-                    })
-                
+                    db_chunks.append(
+                        {
+                            "document_id": document_id,
+                            "chunk_index": idx,
+                            "content": text,
+                            "embedding": emb,
+                        }
+                    )
+
                 await DocumentRepository.add_chunks(db, db_chunks)
 
                 # 6. Update Status
@@ -82,7 +87,9 @@ class KnowledgeService:
                 await DocumentRepository.update_status(db, document_id, "failed")
 
     @staticmethod
-    async def get_document(db: AsyncSession, document_id: UUID, workspace_id: UUID) -> Document:
+    async def get_document(
+        db: AsyncSession, document_id: UUID, workspace_id: UUID
+    ) -> Document:
         doc = await DocumentRepository.get_by_id(db, document_id, workspace_id)
         if not doc:
             raise NotFoundError("Document not found")
@@ -94,18 +101,12 @@ class KnowledgeService:
 
     @staticmethod
     async def search_knowledge(
-        db: AsyncSession,
-        workspace_id: UUID,
-        query: str,
-        limit: int = 5
+        db: AsyncSession, workspace_id: UUID, query: str, limit: int = 5
     ) -> List[DocumentChunk]:
         # Embed the incoming search query
         query_embedding = GeminiClient.embed_query(query)
-        
+
         # Execute vector search
         return await DocumentRepository.search_similar_chunks(
-            db=db,
-            embedding=query_embedding,
-            workspace_id=workspace_id,
-            limit=limit
+            db=db, embedding=query_embedding, workspace_id=workspace_id, limit=limit
         )

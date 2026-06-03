@@ -17,7 +17,7 @@ class SupportAgent(BaseAgent):
     - Use documentation (RAG context) to answer
     - Verify resolution before closing
     - FAQ Resolution, Troubleshooting, Issue Diagnosis
-    
+
     Must NOT:
     - Guess solutions
     - Invent troubleshooting steps
@@ -50,7 +50,9 @@ Keep responses highly structured, precise, and polite."""
     @classmethod
     def _get_client(cls) -> genai.Client:
         if cls._client is None:
-            api_key = getattr(settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+            api_key = getattr(
+                settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")
+            )
             if not api_key:
                 raise ValueError("GEMINI_API_KEY is not configured.")
             cls._client = genai.Client(api_key=api_key)
@@ -60,7 +62,7 @@ Keep responses highly structured, precise, and polite."""
         self,
         message: str,
         conversation_history: Optional[list[str]] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
     ) -> AgentResponse:
         client = self._get_client()
 
@@ -75,8 +77,17 @@ Keep responses highly structured, precise, and polite."""
 
         system_with_context = self.SYSTEM_PROMPT + context_block
 
-        contents = [{"role": "user", "parts": [{"text": system_with_context}]},
-                    {"role": "model", "parts": [{"text": "Understood. I am the Support Agent. I will strictly follow the documentation and troubleshoot systematically."}]}]
+        contents = [
+            {"role": "user", "parts": [{"text": system_with_context}]},
+            {
+                "role": "model",
+                "parts": [
+                    {
+                        "text": "Understood. I am the Support Agent. I will strictly follow the documentation and troubleshoot systematically."
+                    }
+                ],
+            },
+        ]
 
         if conversation_history:
             # We pass more history for SupportAgent to allow multi-step tracking
@@ -94,14 +105,11 @@ Keep responses highly structured, precise, and polite."""
             return AgentResponse(
                 content=response.text.strip(),
                 agent_type=self.agent_type,
-                metadata={
-                    "model": "gemini-2.0-flash", 
-                    "rag_used": bool(context_block)
-                }
+                metadata={"model": "gemini-2.0-flash", "rag_used": bool(context_block)},
             )
         except Exception as e:
             logger.error(f"SupportAgent failed to generate response: {e}")
             return AgentResponse(
                 content="I'm here to help resolve your issue. Could you describe exactly what's happening or what steps you've already tried so I can assist you better?",
-                agent_type=self.agent_type
+                agent_type=self.agent_type,
             )

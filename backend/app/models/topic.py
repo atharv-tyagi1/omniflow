@@ -28,11 +28,11 @@ class Topic(Base):
     )
 
     # Relationships
-    conversation = relationship("Conversation", back_populates="topics", lazy="selectin")
-
-    __table_args__ = (
-        Index("idx_topics_name", "topic_name"),
+    conversation = relationship(
+        "Conversation", back_populates="topics", lazy="selectin"
     )
+
+    __table_args__ = (Index("idx_topics_name", "topic_name"),)
 
     def __repr__(self) -> str:
         return f"<Topic {self.topic_name} ({self.confidence})>"

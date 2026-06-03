@@ -36,7 +36,7 @@ class AgentDispatcher:
         conversation_history: Optional[list[str]] = None,
         db: Optional[AsyncSession] = None,
         workspace_id: Optional[UUID] = None,
-        previous_agent: Optional[str] = None
+        previous_agent: Optional[str] = None,
     ) -> tuple[IntentResult, AgentResponse]:
         """
         Full pipeline: classify the message, select an agent, fetch context, generate a response.
@@ -49,32 +49,34 @@ class AgentDispatcher:
         )
 
         # 2. Select agent — fall back to support if intent is unknown
-        agent_key = intent.primary_intent if intent.primary_intent != "unknown" else "support"
+        agent_key = (
+            intent.primary_intent if intent.primary_intent != "unknown" else "support"
+        )
         agent = _agents.get(agent_key, _agents["support"])
 
         # 3. Retrieve RAG Context (for Sales, Support, and Customer Care)
         context = {}
         if previous_agent and previous_agent != agent_key:
-            context["system_note"] = f"SYSTEM NOTE: The customer was just transferred to you from the '{previous_agent}' team. Acknowledge this transition naturally and continue assisting them."
+            context["system_note"] = (
+                f"SYSTEM NOTE: The customer was just transferred to you from the '{previous_agent}' team. Acknowledge this transition naturally and continue assisting them."
+            )
         if db and workspace_id and agent_key in ["sales", "support", "customer_care"]:
             from backend.app.services.knowledge_service import KnowledgeService
+
             try:
                 search_results = await KnowledgeService.search_knowledge(
-                    db=db,
-                    workspace_id=workspace_id,
-                    query=message,
-                    limit=3
+                    db=db, workspace_id=workspace_id, query=message, limit=3
                 )
                 if search_results:
                     context["rag_chunks"] = [res["content"] for res in search_results]
             except Exception as e:
-                logger.error(f"Failed to retrieve RAG context for agent {agent_key}: {e}")
+                logger.error(
+                    f"Failed to retrieve RAG context for agent {agent_key}: {e}"
+                )
 
         # 4. Generate response
         response = await agent.respond(
-            message=message,
-            conversation_history=conversation_history,
-            context=context
+            message=message, conversation_history=conversation_history, context=context
         )
 
         # Attach routing metadata to the response
@@ -83,4 +85,3 @@ class AgentDispatcher:
         response.metadata["intent"] = intent.to_dict()
 
         return intent, response
-

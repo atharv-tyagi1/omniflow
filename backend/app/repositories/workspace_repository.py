@@ -5,9 +5,12 @@ from typing import Optional, Dict, Any
 from backend.app.models.workspace import Workspace
 from backend.app.models.user import User
 
+
 class WorkspaceRepository:
     @staticmethod
-    async def create(db: AsyncSession, *, name: str, industry: Optional[str] = None) -> Workspace:
+    async def create(
+        db: AsyncSession, *, name: str, industry: Optional[str] = None
+    ) -> Workspace:
         db_obj = Workspace(name=name, industry=industry)
         db.add(db_obj)
         await db.flush()
@@ -19,7 +22,9 @@ class WorkspaceRepository:
         return result.scalars().first()
 
     @staticmethod
-    async def update(db: AsyncSession, *, db_obj: Workspace, obj_in: Dict[str, Any]) -> Workspace:
+    async def update(
+        db: AsyncSession, *, db_obj: Workspace, obj_in: Dict[str, Any]
+    ) -> Workspace:
         for field in obj_in:
             if hasattr(db_obj, field):
                 setattr(db_obj, field, obj_in[field])
@@ -34,12 +39,12 @@ class WorkspaceRepository:
             select(User).where(User.workspace_id == workspace_id)
         )
         users_count = len(user_count_result.scalars().all())
-        
+
         # Placeholders for other entities (since their tables aren't created yet)
         return {
             "users_count": users_count,
             "customers_count": 0,
             "conversations_count": 0,
             "tickets_count": 0,
-            "documents_count": 0
+            "documents_count": 0,
         }

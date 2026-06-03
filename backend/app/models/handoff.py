@@ -29,11 +29,11 @@ class Handoff(Base):
     )
 
     # Relationships
-    conversation = relationship("Conversation", back_populates="handoffs", lazy="selectin")
-
-    __table_args__ = (
-        Index("idx_handoffs_conversation", "conversation_id"),
+    conversation = relationship(
+        "Conversation", back_populates="handoffs", lazy="selectin"
     )
+
+    __table_args__ = (Index("idx_handoffs_conversation", "conversation_id"),)
 
     def __repr__(self) -> str:
         return f"<Handoff {self.from_agent} → {self.to_agent} ({self.id})>"

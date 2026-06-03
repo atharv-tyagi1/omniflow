@@ -19,7 +19,9 @@ class WorkflowRun(Base):
         ForeignKey("workflows.id", ondelete="CASCADE"),
         nullable=False,
     )
-    status = Column(String(20), nullable=False, default="pending")  # pending | running | success | failed
+    status = Column(
+        String(20), nullable=False, default="pending"
+    )  # pending | running | success | failed
     execution_log = Column(JSONB, nullable=True)
     executed_at = Column(
         DateTime(timezone=True),
@@ -30,9 +32,7 @@ class WorkflowRun(Base):
     # Relationships
     workflow = relationship("Workflow", back_populates="runs", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_workflow_runs_workflow", "workflow_id"),
-    )
+    __table_args__ = (Index("idx_workflow_runs_workflow", "workflow_id"),)
 
     def __repr__(self) -> str:
         return f"<WorkflowRun {self.id} ({self.status})>"

@@ -5,7 +5,6 @@ from typing import Optional, List, Dict, Any
 
 from backend.app.models.document import Document
 from backend.app.models.document_chunk import DocumentChunk
-from pgvector.sqlalchemy import Vector
 
 
 class DocumentRepository:
@@ -17,23 +16,27 @@ class DocumentRepository:
         name: str,
         file_type: str,
         file_url: str,
-        uploaded_by: UUID
+        uploaded_by: UUID,
     ) -> Document:
         db_obj = Document(
             workspace_id=workspace_id,
             name=name,
             file_type=file_type,
             file_url=file_url,
-            uploaded_by=uploaded_by
+            uploaded_by=uploaded_by,
         )
         db.add(db_obj)
         await db.flush()
         return db_obj
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, document_id: UUID, workspace_id: UUID) -> Optional[Document]:
+    async def get_by_id(
+        db: AsyncSession, document_id: UUID, workspace_id: UUID
+    ) -> Optional[Document]:
         result = await db.execute(
-            select(Document).where(Document.id == document_id, Document.workspace_id == workspace_id)
+            select(Document).where(
+                Document.id == document_id, Document.workspace_id == workspace_id
+            )
         )
         return result.scalars().first()
 
@@ -47,7 +50,9 @@ class DocumentRepository:
         return list(result.scalars().all())
 
     @staticmethod
-    async def update_status(db: AsyncSession, document_id: UUID, status: str) -> Optional[Document]:
+    async def update_status(
+        db: AsyncSession, document_id: UUID, status: str
+    ) -> Optional[Document]:
         result = await db.execute(select(Document).where(Document.id == document_id))
         doc = result.scalars().first()
         if doc:
@@ -63,7 +68,7 @@ class DocumentRepository:
                 document_id=c["document_id"],
                 chunk_index=c["chunk_index"],
                 content=c["content"],
-                embedding=c["embedding"]
+                embedding=c["embedding"],
             )
             for c in chunks
         ]
@@ -72,10 +77,7 @@ class DocumentRepository:
 
     @staticmethod
     async def search_similar_chunks(
-        db: AsyncSession, 
-        embedding: List[float], 
-        workspace_id: UUID,
-        limit: int = 5
+        db: AsyncSession, embedding: List[float], workspace_id: UUID, limit: int = 5
     ) -> List[DocumentChunk]:
         # Using L2 distance operator `<->` from pgvector
         # Requires joining with documents to enforce workspace isolation

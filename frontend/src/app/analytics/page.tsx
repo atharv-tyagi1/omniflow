@@ -20,8 +20,19 @@ const containerVariants = {
 };
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
 };
+
+const CHART_HEIGHT = { height: 380 } as const;
+const TOOLTIP_CONTENT_STYLE = {
+  backgroundColor: 'rgba(255,255,255,0.95)',
+  backdropFilter: 'blur(24px)',
+  borderRadius: '20px',
+  border: '1px solid #E5E7EB',
+  boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+  padding: '16px'
+} as const;
+const CHANNEL_COLORS = ['#4F7CFF', '#22C55E', '#7A5FFF', '#F59E0B', '#EF4444'] as const;
 
 const channelData = [
   { name: "Web Chat", conversations: 8420, resolved: 7890, csat: 4.7 },
@@ -95,14 +106,14 @@ export default function AnalyticsPage() {
           <p className="text-[16px] text-text-secondary mb-8">
             {tab === "channels" ? "Volume distribution across all active channels" : "Weekly AI automation vs human agent handling"}
           </p>
-          <div style={{ height: 380 }}>
+          <div style={CHART_HEIGHT}>
             <ResponsiveContainer width="100%" height="100%">
               {tab === "channels" ? (
                 <BarChart data={channelData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#E5E7EB" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid #E5E7EB', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', padding: '16px' }} />
+                  <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} />
                   <Bar dataKey="conversations" name="Total" fill="#4F7CFF" radius={[8, 8, 0, 0]} />
                   <Bar dataKey="resolved" name="Resolved" fill="#22C55E" radius={[8, 8, 0, 0]} />
                 </BarChart>
@@ -111,7 +122,7 @@ export default function AnalyticsPage() {
                   <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#E5E7EB" />
                   <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid #E5E7EB', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', padding: '16px' }} />
+                  <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} />
                   <Line type="monotone" dataKey="ai" name="AI Resolved" stroke="#4F7CFF" strokeWidth={4} dot={false} activeDot={{ r: 8, strokeWidth: 0, fill: '#4F7CFF' }} />
                   <Line type="monotone" dataKey="human" name="Human Handled" stroke="#F59E0B" strokeWidth={4} dot={false} activeDot={{ r: 8, strokeWidth: 0, fill: '#F59E0B' }} />
                 </LineChart>
@@ -126,17 +137,17 @@ export default function AnalyticsPage() {
           <p className="text-[16px] text-text-secondary mb-8">CSAT scores per channel</p>
           <div className="flex flex-col gap-6 flex-1 justify-center">
             {channelData.map((ch, i) => {
-              const colors = ['#4F7CFF', '#22C55E', '#7A5FFF', '#F59E0B', '#EF4444'];
+
               return (
                 <div key={ch.name} className="group">
                   <div className="flex justify-between items-end mb-2">
                     <span className="text-[16px] font-semibold text-text-primary">{ch.name}</span>
-                    <span className="text-[16px] font-bold" style={{ color: colors[i] }}>{ch.csat}/5.0</span>
+                    <span className="text-[16px] font-bold" style={{ color: CHANNEL_COLORS[i] }}>{ch.csat}/5.0</span>
                   </div>
                   <div className="w-full bg-background rounded-full h-3 overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: colors[i] }}
+                      style={{ backgroundColor: CHANNEL_COLORS[i] }}
                       initial={{ width: 0 }}
                       animate={{ width: `${(ch.csat / 5) * 100}%` }}
                       transition={{ duration: 1, delay: i * 0.1 }}

@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Column, ForeignKey, Index, String, Text
+from sqlalchemy import Column, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -26,7 +26,9 @@ class Customer(Base, TimestampMixin):
 
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")
-    conversations = relationship("Conversation", back_populates="customer", lazy="selectin")
+    conversations = relationship(
+        "Conversation", back_populates="customer", lazy="selectin"
+    )
     tickets = relationship("Ticket", back_populates="customer", lazy="selectin")
 
     __table_args__ = (

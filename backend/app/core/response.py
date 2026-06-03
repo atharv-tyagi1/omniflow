@@ -1,6 +1,7 @@
 """Standardised API response wrappers for OmniFlow."""
 
 from typing import Any, Optional
+from pydantic import BaseModel
 
 
 def success_response(data: Any = None) -> dict:
@@ -18,17 +19,17 @@ def error_response(code: str, message: str, status_code: int = 400) -> dict:
         },
     }
 
-from pydantic import BaseModel
-from typing import Optional, Any
 
 class SuccessResponse(BaseModel):
     success: bool = True
     data: Optional[Any] = None
     message: Optional[str] = None
 
+
 class ErrorDetail(BaseModel):
     code: str
     message: str
+
 
 class ErrorResponse(BaseModel):
     success: bool = False

@@ -4,6 +4,7 @@ from backend.app.core.exceptions import NotFoundError
 from backend.app.schemas.workspace import WorkspaceUpdateRequest
 from uuid import UUID
 
+
 class WorkspaceService:
     @staticmethod
     async def get_workspace(db: AsyncSession, workspace_id: UUID):
@@ -13,15 +14,19 @@ class WorkspaceService:
         return workspace
 
     @staticmethod
-    async def update_workspace(db: AsyncSession, workspace_id: UUID, update_data: WorkspaceUpdateRequest):
+    async def update_workspace(
+        db: AsyncSession, workspace_id: UUID, update_data: WorkspaceUpdateRequest
+    ):
         workspace = await WorkspaceRepository.get(db, workspace_id)
         if not workspace:
             raise NotFoundError("Workspace not found")
-        
+
         # Clean request data
         update_dict = update_data.model_dump(exclude_unset=True)
-        
-        return await WorkspaceRepository.update(db, db_obj=workspace, obj_in=update_dict)
+
+        return await WorkspaceRepository.update(
+            db, db_obj=workspace, obj_in=update_dict
+        )
 
     @staticmethod
     async def get_stats(db: AsyncSession, workspace_id: UUID):

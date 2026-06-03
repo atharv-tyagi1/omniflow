@@ -28,11 +28,11 @@ class Sentiment(Base):
     )
 
     # Relationships
-    conversation = relationship("Conversation", back_populates="sentiments", lazy="selectin")
-
-    __table_args__ = (
-        Index("idx_sentiments_label", "label"),
+    conversation = relationship(
+        "Conversation", back_populates="sentiments", lazy="selectin"
     )
+
+    __table_args__ = (Index("idx_sentiments_label", "label"),)
 
     def __repr__(self) -> str:
         return f"<Sentiment {self.label} ({self.score})>"

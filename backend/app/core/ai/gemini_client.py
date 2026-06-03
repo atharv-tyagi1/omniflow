@@ -3,11 +3,13 @@ from typing import List
 from google import genai
 from backend.app.core.config import settings
 
+
 class GeminiClient:
     """
-    Singleton-style wrapper for the modern Google GenAI SDK, enforcing strict 
+    Singleton-style wrapper for the modern Google GenAI SDK, enforcing strict
     model selection and batching for embedding generation.
     """
+
     _client = None
 
     SYSTEM_PROMPT = """You are AI Business Analyst, an expert business intelligence assistant.
@@ -30,33 +32,39 @@ Response format:
     @classmethod
     def _initialize(cls):
         if not cls._client:
-            api_key = getattr(settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+            api_key = getattr(
+                settings, "GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY")
+            )
             if not api_key:
-                raise ValueError("GEMINI_API_KEY is missing. Cannot initialize GeminiClient.")
+                raise ValueError(
+                    "GEMINI_API_KEY is missing. Cannot initialize GeminiClient."
+                )
             cls._client = genai.Client(api_key=api_key)
 
     @classmethod
-    def generate_embeddings(cls, texts: List[str], batch_size: int = 100) -> List[List[float]]:
+    def generate_embeddings(
+        cls, texts: List[str], batch_size: int = 100
+    ) -> List[List[float]]:
         """
         Generates 768-dimensional embeddings using text-embedding-004.
         Implements chunk batching to avoid API payload limits.
         """
         cls._initialize()
-        
+
         all_embeddings = []
-        
+
         for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-            
+            batch = texts[i : i + batch_size]
+
             result = cls._client.models.embed_content(
-                model='text-embedding-004',
+                model="text-embedding-004",
                 contents=batch,
             )
-            
+
             # Extract embeddings from the new SDK result format
             for embedding_obj in result.embeddings:
                 all_embeddings.append(embedding_obj.values)
-                
+
         return all_embeddings
 
     @classmethod
@@ -65,9 +73,9 @@ Response format:
         Generates an embedding for a search query.
         """
         cls._initialize()
-        
+
         result = cls._client.models.embed_content(
-            model='text-embedding-004',
+            model="text-embedding-004",
             contents=text,
         )
         return result.embeddings[0].values
@@ -82,7 +90,7 @@ Response format:
 
         try:
             result = cls._client.models.generate_content(
-                model='gemini-2.5-pro',
+                model="gemini-2.5-pro",
                 contents=f"{cls.SYSTEM_PROMPT}\n\nUser Query: {query}",
             )
             return {
@@ -119,12 +127,20 @@ Response format:
         import json
 
         class ChartConfig(BaseModel):
-            type: str = Field(description="The type of chart to render (e.g. 'bar', 'line', 'pie')")
-            data: list[dict] = Field(description="Array of data objects with a 'name' (x-axis label) and 'value' (y-axis numeric value). E.g. [{'name': 'Jan', 'value': 100}]")
+            type: str = Field(
+                description="The type of chart to render (e.g. 'bar', 'line', 'pie')"
+            )
+            data: list[dict] = Field(
+                description="Array of data objects with a 'name' (x-axis label) and 'value' (y-axis numeric value). E.g. [{'name': 'Jan', 'value': 100}]"
+            )
 
         class DatasetAnalysis(BaseModel):
-            answer: str = Field(description="The natural language analysis and insight, formatted in markdown")
-            chart_config: ChartConfig = Field(description="The configuration for rendering a Recharts chart based on the data")
+            answer: str = Field(
+                description="The natural language analysis and insight, formatted in markdown"
+            )
+            chart_config: ChartConfig = Field(
+                description="The configuration for rendering a Recharts chart based on the data"
+            )
 
         try:
             prompt = (
@@ -133,23 +149,23 @@ Response format:
                 "Please analyze the data and answer the question. Also provide a chart configuration to visualize the relevant metrics if applicable. If no chart makes sense, provide an empty data array."
             )
             result = cls._client.models.generate_content(
-                model='gemini-2.5-flash',
+                model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=DatasetAnalysis,
                     temperature=0.2,
-                )
+                ),
             )
             parsed = json.loads(result.text)
             return {
                 "response": parsed.get("answer", "No answer generated."),
                 "chart_config": parsed.get("chart_config", {"type": "bar", "data": []}),
-                "error": None
+                "error": None,
             }
         except Exception as e:
             return {
                 "response": None,
                 "chart_config": None,
-                "error": f"AI Error: {str(e)}"
+                "error": f"AI Error: {str(e)}",
             }

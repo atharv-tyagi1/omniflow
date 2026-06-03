@@ -32,9 +32,7 @@ class Workflow(Base):
     workspace = relationship("Workspace", lazy="selectin")
     runs = relationship("WorkflowRun", back_populates="workflow", lazy="selectin")
 
-    __table_args__ = (
-        Index("idx_workflows_workspace", "workspace_id"),
-    )
+    __table_args__ = (Index("idx_workflows_workspace", "workspace_id"),)
 
     def __repr__(self) -> str:
         return f"<Workflow {self.name} ({self.id})>"

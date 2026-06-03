@@ -25,7 +25,9 @@ class Conversation(Base):
         nullable=False,
     )
     current_agent = Column(String(50), nullable=True)
-    channel = Column(String(50), nullable=False, default="web")  # web | telegram_chat | telegram_voice
+    channel = Column(
+        String(50), nullable=False, default="web"
+    )  # web | telegram_chat | telegram_voice
     status = Column(String(20), nullable=False, default="active")
     started_at = Column(
         DateTime(timezone=True),
@@ -39,9 +41,13 @@ class Conversation(Base):
     customer = relationship("Customer", back_populates="conversations", lazy="selectin")
     messages = relationship("Message", back_populates="conversation", lazy="selectin")
     handoffs = relationship("Handoff", back_populates="conversation", lazy="selectin")
-    sentiments = relationship("Sentiment", back_populates="conversation", lazy="selectin")
+    sentiments = relationship(
+        "Sentiment", back_populates="conversation", lazy="selectin"
+    )
     topics = relationship("Topic", back_populates="conversation", lazy="selectin")
-    voice_interactions = relationship("VoiceInteraction", back_populates="conversation", lazy="selectin")
+    voice_interactions = relationship(
+        "VoiceInteraction", back_populates="conversation", lazy="selectin"
+    )
 
     __table_args__ = (
         Index("idx_conversations_workspace", "workspace_id"),

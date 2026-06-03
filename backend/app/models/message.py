@@ -31,7 +31,9 @@ class Message(Base):
     )
 
     # Relationships
-    conversation = relationship("Conversation", back_populates="messages", lazy="selectin")
+    conversation = relationship(
+        "Conversation", back_populates="messages", lazy="selectin"
+    )
 
     __table_args__ = (
         Index("idx_messages_conversation", "conversation_id"),

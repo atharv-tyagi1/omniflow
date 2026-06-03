@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 
+
 @router.post("/webhook")
 async def telegram_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Receives incoming webhook updates from Telegram.
@@ -53,4 +54,6 @@ async def setup_telegram_webhook():
     success = await TelegramService.setup_webhook()
     if success:
         return success_response(message="Webhook registered successfully")
-    return error_response(code="WEBHOOK_SETUP_FAILED", message="Failed to register webhook")
+    return error_response(
+        code="WEBHOOK_SETUP_FAILED", message="Failed to register webhook"
+    )

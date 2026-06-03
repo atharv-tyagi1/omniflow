@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
@@ -40,9 +40,26 @@ const itemVariants = {
   show: { 
     opacity: 1, 
     y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 24 }
+    transition: { type: "spring" as const, stiffness: 300, damping: 24 }
   }
 };
+
+const CHART_HEIGHT = { height: 380 } as const;
+
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(24px)',
+    borderRadius: '20px',
+    border: '1px solid #E5E7EB',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+    padding: '16px'
+  },
+  itemStyle: { fontSize: '14px', fontWeight: 600 },
+  labelStyle: { fontSize: '14px', color: '#64748B', marginBottom: '8px' }
+} as const;
+
+const TOPIC_COLORS = ['#4F7CFF', '#7A5FFF', '#F59E0B', '#22C55E', '#9CA3AF'] as const;
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -107,7 +124,7 @@ export default function Dashboard() {
     );
   }
 
-  const maxTopicCount = Math.max(...data.top_topics.map(t => t.count), 1);
+  const maxTopicCount = useMemo(() => Math.max(...data.top_topics.map(t => t.count), 1), [data.top_topics]);
 
   return (
     <motion.div 
@@ -213,7 +230,7 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="w-full" style={{ height: 380 }}>
+          <div className="w-full" style={CHART_HEIGHT}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.chart_data} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                 <defs>
@@ -225,18 +242,7 @@ export default function Dashboard() {
                 <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#E5E7EB" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} dy={20} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    backdropFilter: 'blur(24px)',
-                    borderRadius: '20px', 
-                    border: '1px solid #E5E7EB',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-                    padding: '16px'
-                  }} 
-                  itemStyle={{ fontSize: '14px', fontWeight: 600 }}
-                  labelStyle={{ fontSize: '14px', color: '#64748B', marginBottom: '8px' }}
-                />
+                <Tooltip {...TOOLTIP_STYLE} />
                 <Line type="monotone" dataKey="conversations" name="Total Volume" stroke="#4F7CFF" strokeWidth={4} dot={false} activeDot={{ r: 8, strokeWidth: 0, fill: '#4F7CFF' }} />
                 <Line type="monotone" dataKey="resolved" name="AI Resolved" stroke="#22C55E" strokeWidth={4} dot={false} activeDot={{ r: 8, strokeWidth: 0, fill: '#22C55E' }} />
               </LineChart>
@@ -251,9 +257,8 @@ export default function Dashboard() {
           
           <div className="flex flex-col gap-8 flex-1 justify-center">
             {data.top_topics.map((topic, i) => {
-              const colors = ['#4F7CFF', '#7A5FFF', '#F59E0B', '#22C55E', '#9CA3AF'];
+              const color = TOPIC_COLORS[i % TOPIC_COLORS.length];
               const pct = (topic.count / maxTopicCount) * 100;
-              const color = colors[i % colors.length];
               
               return (
                 <div key={topic.name} className="group">
