@@ -24,6 +24,7 @@ from backend.app.models.topic import Topic
 
 # Analytics models
 from backend.app.models.analytics_report import AnalyticsReport
+from backend.app.models.router_event import RouterEvent
 from backend.app.models.dataset import Dataset
 from backend.app.models.dataset_query import DatasetQuery
 
@@ -54,6 +55,7 @@ __all__ = [
     "Sentiment",
     "Topic",
     "AnalyticsReport",
+    "RouterEvent",
     "Dataset",
     "DatasetQuery",
     "Workflow",

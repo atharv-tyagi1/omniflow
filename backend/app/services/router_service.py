@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
@@ -7,13 +8,17 @@ from backend.app.schemas.router import (
     RouterDecision,
     RouteMessageRequest,
     RouteMessageResponse,
+    IntentResult,
 )
 from backend.app.core.ai.intent_router import IntentRouter
 from backend.app.models.conversation import Conversation
 from backend.app.repositories.handoff_repository import HandoffRepository
+from backend.app.repositories.router_event_repository import RouterEventRepository
+from backend.app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class RouterService:
-    CONFIDENCE_THRESHOLD = 0.70
 
     @staticmethod
     async def route_message(
@@ -22,14 +27,35 @@ class RouterService:
         conversation: Conversation,
         history: Optional[list[str]] = None
     ) -> RouteMessageResponse:
-        # 1. Detect Intent using Phase 6 AI orchestration
-        intent_result = await IntentRouter.classify(request.message, history)
+        
+        # 1. Detect Intent (with Fail-safe logic)
+        try:
+            intent_result = await IntentRouter.classify(request.message, history)
+        except Exception as e:
+            logger.error(f"Router AI failure: {e}")
+            intent_result = IntentResult(
+                primary_intent=AgentIntent.UNKNOWN,
+                secondary_intent=None,
+                confidence=0.0
+            )
         
         primary = intent_result.primary_intent
         secondary = intent_result.secondary_intent
         confidence = intent_result.confidence
         
-        # 2. Read the active agent from the conversation state
+        # 2. Multi-Intent Priority Policy (customer_care > support > sales)
+        PRIORITY = {
+            AgentIntent.CUSTOMER_CARE: 3,
+            AgentIntent.SUPPORT: 2,
+            AgentIntent.SALES: 1,
+            AgentIntent.UNKNOWN: 0,
+        }
+        
+        if secondary and PRIORITY.get(secondary, 0) > PRIORITY.get(primary, 0):
+            primary, secondary = secondary, primary
+            logger.info(f"Router priority swap: Primary is now {primary}, Secondary is {secondary}")
+
+        # 3. Read active agent from conversation
         active_agent = conversation.current_agent
         if active_agent:
             try:
@@ -42,8 +68,8 @@ class RouterService:
         routed_agent = None
         route_reason = "Evaluated via Smart Intent Router."
         
-        # 3. Apply Deterministic Routing Rules
-        is_confident = confidence >= RouterService.CONFIDENCE_THRESHOLD
+        # 4. Apply Deterministic Routing Rules with Configurable Threshold
+        is_confident = confidence >= settings.ROUTER_CONFIDENCE_THRESHOLD
 
         if is_confident:
             if active_agent and primary == active_agent:
@@ -61,21 +87,21 @@ class RouterService:
                 routed_agent = active_agent
                 route_reason = f"Low confidence ({confidence}) detected, retaining active agent."
             else:
+                # Failsafe: if classification fails or is low confidence with no agent
                 decision = RouterDecision.CLARIFY
                 route_reason = f"Low confidence ({confidence}) with no active agent."
                 routed_agent = None
-                if primary == AgentIntent.UNKNOWN:
-                    decision = RouterDecision.UNKNOWN
-                    
-        # 4. Handoff Persistence & Conversation State Update
+                
+        # Handle the specific UNKNOWN intent fallback if confidence is low and it's ambiguous
+        if not is_confident and primary == AgentIntent.UNKNOWN:
+            decision = RouterDecision.CLARIFY
+
+        # 5. Handoff Persistence & Conversation State Update
         if decision == RouterDecision.HANDOFF:
             from_agent = active_agent.value if active_agent else "system"
             to_agent = routed_agent.value
             
-            # Update active agent
             await HandoffRepository.update_conversation_agent(db, conversation.id, to_agent)
-            
-            # Persist handoff
             await HandoffRepository.create(
                 db=db,
                 conversation_id=conversation.id,
@@ -86,17 +112,37 @@ class RouterService:
             )
             
         elif decision == RouterDecision.STAY and active_agent is None and routed_agent is not None:
-            # First time setting an agent
             await HandoffRepository.update_conversation_agent(db, conversation.id, routed_agent.value)
 
-        # 5. Build and Return standard Response
+        # 6. Analytics Instrumentation: Persist to RouterEvent and log
+        await RouterEventRepository.create(
+            db=db,
+            conversation_id=conversation.id,
+            primary_intent=primary.value if primary else "unknown",
+            secondary_intent=secondary.value if secondary else None,
+            confidence=confidence,
+            decision=decision.value,
+            routed_agent=routed_agent.value if routed_agent else None,
+        )
+        
+        logger.info(
+            "Router Decision Executed",
+            extra={
+                "primary_intent": primary.value if primary else "unknown",
+                "secondary_intent": secondary.value if secondary else None,
+                "confidence": confidence,
+                "decision": decision.value,
+                "routed_agent": routed_agent.value if routed_agent else None,
+            }
+        )
+
         return RouteMessageResponse(
             decision=decision,
             primary_intent=primary,
             secondary_intent=secondary,
             confidence=confidence,
             active_agent=active_agent,
-            previous_agent=active_agent if not handoff_required else active_agent, # keeping it simple
+            previous_agent=active_agent if not handoff_required else active_agent, 
             routed_agent=routed_agent,
             handoff_required=handoff_required,
             route_reason=route_reason

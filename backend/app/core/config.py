@@ -43,6 +43,8 @@ class Settings(BaseModel):
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-change-in-production")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
-
+    
+    # Router Settings
+    ROUTER_CONFIDENCE_THRESHOLD: float = float(os.getenv("ROUTER_CONFIDENCE_THRESHOLD", "0.70"))
 
 settings = Settings()
