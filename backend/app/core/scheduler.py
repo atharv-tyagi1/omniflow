@@ -1,5 +1,5 @@
 import asyncio
-from backend.app.core.database import async_session_maker
+from backend.app.core.database import AsyncSessionLocal
 from backend.app.services.outreach_service import OutreachService
 
 
@@ -37,7 +37,7 @@ class BackgroundScheduler:
         while not cls._stop_event.is_set():
             try:
                 # Provide a new DB session for each evaluation cycle
-                async with async_session_maker() as session:
+                async with AsyncSessionLocal() as session:
                     await OutreachService.evaluate_triggers(session)
             except Exception as e:
                 print(f"[Scheduler] Error during outreach evaluation: {e}")

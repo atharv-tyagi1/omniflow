@@ -22,6 +22,11 @@ class TokenResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
+    """
+    API response for user info. workspace_id and role are not on the User ORM
+    model anymore — they come from workspace_members and are injected by the
+    controller/service layer.
+    """
     id: UUID
     email: EmailStr
     full_name: str
@@ -29,6 +34,3 @@ class UserResponse(BaseModel):
     workspace_id: UUID
     status: str
     avatar_url: Optional[str] = None
-
-    class Config:
-        from_attributes = True

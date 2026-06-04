@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.api.v1.auth import router as auth_router
+from backend.app.api.v1.users import router as users_router
 from backend.app.api.v1.workspaces import router as workspaces_router
 from backend.app.api.v1.conversations import router as conversations_router
 from backend.app.api.v1.documents import router as documents_router
@@ -12,6 +13,9 @@ from backend.app.api.v1.workflows import router as workflows_router
 from backend.app.api.v1.analytics import router as analytics_router
 from backend.app.api.v1.analyst import router as analyst_router
 from backend.app.api.v1.telegram import router as telegram_router
+from backend.app.api.v1.customers import router as customers_router
+from backend.app.api.v1.tickets import router as tickets_router
+from backend.app.api.v1.notifications import router as notifications_router
 from backend.app.core.exceptions import OmniFlowError
 from backend.app.core.response import error_response
 from backend.app.core.scheduler import BackgroundScheduler
@@ -44,13 +48,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from backend.app.api.v1.router import router as router_router
+
 # Register routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(workspaces_router, prefix=settings.API_V1_STR)
+app.include_router(customers_router, prefix=settings.API_V1_STR)
 app.include_router(conversations_router, prefix=settings.API_V1_STR)
+app.include_router(tickets_router, prefix=settings.API_V1_STR)
+app.include_router(notifications_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
 app.include_router(datasets_router, prefix=settings.API_V1_STR)
 app.include_router(workflows_router, prefix=settings.API_V1_STR)
+app.include_router(router_router, prefix=settings.API_V1_STR)
 app.include_router(
     analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"]
 )
@@ -87,6 +98,11 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
+from fastapi import Response
+import httpx
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.sql import text
+
 @app.get("/")
 def read_root():
     return {
@@ -98,7 +114,60 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "database": "unverified", "gemini": "unverified"}
+    return {"status": "healthy", "version": settings.VERSION}
+
+
+@app.get("/ready")
+async def readiness_check(response: Response):
+    services = {"database": "unverified", "supabase": "unverified", "gemini": "unverified"}
+    is_ready = True
+
+    # 1. Database Connectivity (Supabase PostgreSQL)
+    try:
+        engine = create_async_engine(settings.DATABASE_URL)
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        services["database"] = "ok"
+    except Exception as e:
+        services["database"] = f"error: {str(e)}"
+        is_ready = False
+
+    # 2. Supabase API Connectivity
+    try:
+        async with httpx.AsyncClient() as client:
+            headers = {"apikey": settings.SUPABASE_ANON_KEY}
+            api_resp = await client.get(
+                f"{settings.SUPABASE_URL}/rest/v1/", headers=headers, timeout=5.0
+            )
+            if api_resp.status_code in [200, 204, 401]:
+                services["supabase"] = "ok"
+            else:
+                services["supabase"] = f"error: status {api_resp.status_code}"
+                is_ready = False
+    except Exception as e:
+        services["supabase"] = f"error: {str(e)}"
+        is_ready = False
+
+    # 3. Gemini Client Initialization
+    try:
+        key = settings.GEMINI_API_KEY
+        if not key or key == "your-gemini-api-key" or key == "":
+            services["gemini"] = "error: missing key"
+            is_ready = False
+        else:
+            from google import genai
+            # Just verify client initialization succeeds
+            _client = genai.Client(api_key=key)
+            services["gemini"] = "ok"
+    except Exception as e:
+        services["gemini"] = f"error: {str(e)}"
+        is_ready = False
+
+    if not is_ready:
+        response.status_code = 503
+        return {"status": "unavailable", "services": services}
+
+    return {"status": "ready", "services": services}
 
 
 if __name__ == "__main__":

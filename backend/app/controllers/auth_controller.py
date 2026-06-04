@@ -15,7 +15,15 @@ class AuthController:
         result = await AuthService.signup(db, signup_data)
 
         # Serialize user response
-        user_resp = UserResponse.model_validate(result["user"])
+        user_resp = UserResponse(
+            id=result["user"].id,
+            email=result["user"].email,
+            full_name=result["user"].full_name,
+            status=result["user"].status,
+            avatar_url=result["user"].avatar_url,
+            workspace_id=result["workspace_id"],
+            role=result["role"],
+        )
         tokens = TokenResponse(
             access_token=result["access_token"], refresh_token=result["refresh_token"]
         )
@@ -33,7 +41,15 @@ class AuthController:
     async def login(db: AsyncSession, login_data: LoginRequest) -> dict:
         result = await AuthService.login(db, login_data)
 
-        user_resp = UserResponse.model_validate(result["user"])
+        user_resp = UserResponse(
+            id=result["user"].id,
+            email=result["user"].email,
+            full_name=result["user"].full_name,
+            status=result["user"].status,
+            avatar_url=result["user"].avatar_url,
+            workspace_id=result["workspace_id"],
+            role=result["role"],
+        )
         tokens = TokenResponse(
             access_token=result["access_token"], refresh_token=result["refresh_token"]
         )

@@ -19,7 +19,7 @@ class Workspace(Base, TimestampMixin):
     status = Column(String(20), nullable=False, default="active")
 
     # Relationships
-    users = relationship("User", back_populates="workspace", lazy="selectin")
+    members = relationship("WorkspaceMember", back_populates="workspace", cascade="all, delete-orphan", lazy="selectin")
 
     __table_args__ = (Index("idx_workspaces_status", "status"),)
 

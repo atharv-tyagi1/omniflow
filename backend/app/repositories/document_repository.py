@@ -79,14 +79,23 @@ class DocumentRepository:
     async def search_similar_chunks(
         db: AsyncSession, embedding: List[float], workspace_id: UUID, limit: int = 5
     ) -> List[DocumentChunk]:
-        # Using L2 distance operator `<->` from pgvector
+        # Using Cosine distance operator `<=>` from pgvector via cosine_distance()
         # Requires joining with documents to enforce workspace isolation
         stmt = (
             select(DocumentChunk)
             .join(Document, Document.id == DocumentChunk.document_id)
             .where(Document.workspace_id == workspace_id)
-            .order_by(DocumentChunk.embedding.l2_distance(embedding))
+            .order_by(DocumentChunk.embedding.cosine_distance(embedding))
             .limit(limit)
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def delete(db: AsyncSession, document_id: UUID, workspace_id: UUID) -> bool:
+        doc = await DocumentRepository.get_by_id(db, document_id, workspace_id)
+        if doc:
+            await db.delete(doc)
+            await db.flush()
+            return True
+        return False

@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from uuid import UUID
 from typing import Optional, Dict, Any
 from backend.app.models.workspace import Workspace
-from backend.app.models.user import User
+from backend.app.models.workspace_member import WorkspaceMember
 
 
 class WorkspaceRepository:
@@ -34,17 +35,27 @@ class WorkspaceRepository:
 
     @staticmethod
     async def get_stats(db: AsyncSession, workspace_id: UUID) -> Dict[str, int]:
-        # Count users in this workspace
-        user_count_result = await db.execute(
-            select(User).where(User.workspace_id == workspace_id)
+        # Count members in this workspace via workspace_members
+        member_count_result = await db.execute(
+            select(func.count(WorkspaceMember.id)).where(
+                WorkspaceMember.workspace_id == workspace_id
+            )
         )
-        users_count = len(user_count_result.scalars().all())
+        members_count = member_count_result.scalar() or 0
 
-        # Placeholders for other entities (since their tables aren't created yet)
         return {
-            "users_count": users_count,
+            "users_count": members_count,
             "customers_count": 0,
             "conversations_count": 0,
             "tickets_count": 0,
             "documents_count": 0,
         }
+
+    @staticmethod
+    async def delete(db: AsyncSession, workspace_id: UUID) -> bool:
+        workspace = await WorkspaceRepository.get(db, workspace_id)
+        if workspace:
+            await db.delete(workspace)
+            await db.flush()
+            return True
+        return False

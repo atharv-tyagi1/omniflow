@@ -51,6 +51,37 @@ async def list_documents(
     )
 
 
+@router.get("/documents/{document_id}", response_model=SuccessResponse)
+async def get_document(
+    document_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace_id: UUID = Depends(get_current_workspace_id),
+):
+    try:
+        doc = await DocumentController.get_by_id(db, document_id, workspace_id)
+        return SuccessResponse(
+            data={"id": doc.id, "name": doc.name, "status": doc.status, "file_type": doc.file_type},
+            message="Document retrieved"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/documents/{document_id}", response_model=SuccessResponse)
+async def delete_document(
+    document_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace_id: UUID = Depends(get_current_workspace_id),
+):
+    try:
+        await DocumentController.delete(db, document_id, workspace_id)
+        return SuccessResponse(data={"deleted": True}, message="Document deleted successfully")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 @router.post("/search", response_model=SuccessResponse)
 async def search_knowledge(
     data: SearchQuery,
@@ -59,11 +90,11 @@ async def search_knowledge(
     workspace_id: UUID = Depends(get_current_workspace_id),
 ):
     try:
-        chunks = await DocumentController.search(
+        context_result = await DocumentController.search(
             db=db, workspace_id=workspace_id, query=data.query, limit=data.limit
         )
         return SuccessResponse(
-            data={"results_count": len(chunks)}, message="Search completed"
+            data=context_result, message="Search completed and context assembled"
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -49,7 +49,12 @@ class DocumentController:
         return await KnowledgeService.get_document(db, document_id, workspace_id)
 
     @staticmethod
+    async def delete(db: AsyncSession, document_id: UUID, workspace_id: UUID) -> bool:
+        return await KnowledgeService.delete_document(db, document_id, workspace_id)
+
+    @staticmethod
     async def search(
         db: AsyncSession, workspace_id: UUID, query: str, limit: int = 5
-    ) -> List[DocumentChunk]:
-        return await KnowledgeService.search_knowledge(db, workspace_id, query, limit)
+    ) -> dict:
+        from backend.app.services.rag_service import RagService
+        return await RagService.build_context(db, workspace_id, query, limit)

@@ -5,6 +5,7 @@ from backend.app.models.base import Base, TimestampMixin
 # Core tenant models
 from backend.app.models.workspace import Workspace
 from backend.app.models.user import User
+from backend.app.models.workspace_member import WorkspaceMember
 
 # Customer & Conversation models
 from backend.app.models.customer import Customer
@@ -41,6 +42,7 @@ __all__ = [
     "Base",
     "TimestampMixin",
     "Workspace",
+    "WorkspaceMember",
     "User",
     "Customer",
     "Conversation",

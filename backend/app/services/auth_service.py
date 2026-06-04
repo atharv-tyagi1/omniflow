@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.workspace_member_repository import WorkspaceMemberRepository
 from backend.app.core.security import (
     hash_password,
     verify_password,
@@ -29,21 +30,24 @@ class AuthService:
         # 2. Hash password
         pwd_hash = hash_password(signup_data.password)
 
-        # 3. Create user (role: owner for signup)
+        # 3. Create user (no workspace_id or role on user anymore)
         user = await UserRepository.create(
             db,
             email=signup_data.email,
             full_name=signup_data.full_name,
             password_hash=pwd_hash,
-            role="owner",
-            workspace_id=workspace.id,
         )
 
-        # Generate tokens
+        # 4. Create workspace membership (owner role)
+        membership = await WorkspaceMemberRepository.create(
+            db, workspace_id=workspace.id, user_id=user.id, role="owner"
+        )
+
+        # Generate tokens — include workspace_id and role from membership
         token_data = {
             "sub": str(user.id),
-            "workspace_id": str(user.workspace_id),
-            "role": user.role,
+            "workspace_id": str(workspace.id),
+            "role": membership.role,
         }
 
         access_token = create_access_token(token_data)
@@ -53,6 +57,8 @@ class AuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user": user,
+            "workspace_id": workspace.id,
+            "role": membership.role,
         }
 
     @staticmethod
@@ -67,11 +73,18 @@ class AuthService:
         if user.status != "active":
             raise AuthenticationError("User account is inactive")
 
+        # Get user's workspaces — pick the first one as the active workspace
+        memberships = await WorkspaceMemberRepository.get_workspaces_for_user(db, user.id)
+        if not memberships:
+            raise AuthenticationError("User has no workspace memberships")
+
+        active_membership = memberships[0]
+
         # Generate tokens
         token_data = {
             "sub": str(user.id),
-            "workspace_id": str(user.workspace_id),
-            "role": user.role,
+            "workspace_id": str(active_membership.workspace_id),
+            "role": active_membership.role,
         }
 
         access_token = create_access_token(token_data)
@@ -81,6 +94,8 @@ class AuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user": user,
+            "workspace_id": active_membership.workspace_id,
+            "role": active_membership.role,
         }
 
     @staticmethod
@@ -99,11 +114,30 @@ class AuthService:
                 "User associated with token not found or inactive"
             )
 
+        # Use workspace_id from the old token payload
+        workspace_id_str = payload.get("workspace_id")
+        role = payload.get("role", "member")
+
+        # Verify membership is still valid
+        if workspace_id_str:
+            membership = await WorkspaceMemberRepository.get_by_user_and_workspace(
+                db, user.id, UUID(workspace_id_str)
+            )
+            if membership:
+                workspace_id_str = str(membership.workspace_id)
+                role = membership.role
+            else:
+                # Fallback to first workspace
+                memberships = await WorkspaceMemberRepository.get_workspaces_for_user(db, user.id)
+                if memberships:
+                    workspace_id_str = str(memberships[0].workspace_id)
+                    role = memberships[0].role
+
         # Generate new tokens
         token_data = {
             "sub": str(user.id),
-            "workspace_id": str(user.workspace_id),
-            "role": user.role,
+            "workspace_id": workspace_id_str or "",
+            "role": role,
         }
 
         new_access_token = create_access_token(token_data)

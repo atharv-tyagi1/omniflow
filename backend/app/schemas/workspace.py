@@ -3,6 +3,11 @@ from uuid import UUID
 from typing import Optional
 
 
+class WorkspaceCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    industry: Optional[str] = Field(None, max_length=100)
+
+
 class WorkspaceResponse(BaseModel):
     id: UUID
     name: str
@@ -17,6 +22,15 @@ class WorkspaceResponse(BaseModel):
 class WorkspaceUpdateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     industry: Optional[str] = Field(None, max_length=100)
+
+
+class WorkspaceMemberResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    workspace_id: UUID
+    role: str
+    user_email: str = ""
+    user_name: str = ""
 
 
 class WorkspaceStatsResponse(BaseModel):

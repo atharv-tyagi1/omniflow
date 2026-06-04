@@ -110,3 +110,12 @@ class KnowledgeService:
         return await DocumentRepository.search_similar_chunks(
             db=db, embedding=query_embedding, workspace_id=workspace_id, limit=limit
         )
+
+    @staticmethod
+    async def delete_document(
+        db: AsyncSession, document_id: UUID, workspace_id: UUID
+    ) -> bool:
+        success = await DocumentRepository.delete(db, document_id, workspace_id)
+        if not success:
+            raise NotFoundError("Document not found")
+        return success

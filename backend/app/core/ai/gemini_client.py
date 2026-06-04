@@ -81,91 +81,107 @@ Response format:
         return result.embeddings[0].values
 
     @classmethod
-    async def generate_analyst_response(cls, query: str) -> dict:
+    async def generate_completion(
+        cls,
+        prompt: str,
+        response_schema=None,
+        model: str = "gemini-2.0-flash",
+    ) -> dict:
         """
-        Send a query to Gemini and return the response.
-        Returns { "response": str, "error": str | None }
-        """
-        cls._initialize()
-
-        try:
-            result = cls._client.models.generate_content(
-                model="gemini-2.5-pro",
-                contents=f"{cls.SYSTEM_PROMPT}\n\nUser Query: {query}",
-            )
-            return {
-                "response": result.text,
-                "error": None,
+        Generic, robust text generation wrapper with retry logic, latency tracking,
+        and structured output support.
+        
+        Returns:
+            dict: {
+                "content": str,
+                "structured_data": dict | None,
+                "latency_ms": float,
+                "tokens_used": int,
+                "error": str | None
             }
-        except Exception as e:
-            error_msg = str(e)
-            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-                return {
-                    "response": None,
-                    "error": "Gemini API rate limit exceeded. Please wait a moment and try again.",
-                }
-            elif "403" in error_msg or "API_KEY" in error_msg.upper():
-                return {
-                    "response": None,
-                    "error": "Invalid Gemini API key. Please check your API key config.",
-                }
-            else:
-                return {
-                    "response": None,
-                    "error": f"AI Error: {error_msg}",
-                }
-
-    @classmethod
-    async def analyze_dataset(cls, data_preview: str, question: str) -> dict:
-        """
-        Send a dataset preview and a question to Gemini and return the structured analysis.
-        Returns { "response": str, "chart_config": dict, "error": str | None }
         """
         cls._initialize()
-        from pydantic import BaseModel, Field
-        from google.genai import types
+        
+        import time
         import json
+        import asyncio
+        from google.genai import types
+        from pydantic import BaseModel
+        from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
+        
+        start_time = time.time()
+        
+        config_kwargs = {"temperature": 0.2}
+        if response_schema and issubclass(response_schema, BaseModel):
+            config_kwargs["response_mime_type"] = "application/json"
+            config_kwargs["response_schema"] = response_schema
+            
+        config = types.GenerateContentConfig(**config_kwargs)
 
-        class ChartConfig(BaseModel):
-            type: str = Field(
-                description="The type of chart to render (e.g. 'bar', 'line', 'pie')"
-            )
-            data: list[dict] = Field(
-                description="Array of data objects with a 'name' (x-axis label) and 'value' (y-axis numeric value). E.g. [{'name': 'Jan', 'value': 100}]"
-            )
-
-        class DatasetAnalysis(BaseModel):
-            answer: str = Field(
-                description="The natural language analysis and insight, formatted in markdown"
-            )
-            chart_config: ChartConfig = Field(
-                description="The configuration for rendering a Recharts chart based on the data"
-            )
-
-        try:
-            prompt = (
-                f"You are an AI Business Analyst. Based on the following dataset preview:\n\n{data_preview}\n\n"
-                f"User Question: {question}\n\n"
-                "Please analyze the data and answer the question. Also provide a chart configuration to visualize the relevant metrics if applicable. If no chart makes sense, provide an empty data array."
-            )
-            result = cls._client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=DatasetAnalysis,
-                    temperature=0.2,
-                ),
-            )
-            parsed = json.loads(result.text)
-            return {
-                "response": parsed.get("answer", "No answer generated."),
-                "chart_config": parsed.get("chart_config", {"type": "bar", "data": []}),
-                "error": None,
-            }
-        except Exception as e:
-            return {
-                "response": None,
-                "chart_config": None,
-                "error": f"AI Error: {str(e)}",
-            }
+        max_retries = 3
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                result = cls._client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config,
+                )
+                
+                latency_ms = (time.time() - start_time) * 1000
+                tokens_used = result.usage_metadata.total_token_count if result.usage_metadata else 0
+                
+                response_payload = {
+                    "content": "",
+                    "structured_data": None,
+                    "latency_ms": round(latency_ms, 2),
+                    "tokens_used": tokens_used,
+                    "error": None
+                }
+                
+                raw_text = result.text or ""
+                
+                if response_schema:
+                    try:
+                        # Sometimes gemini wraps json in ```json fences
+                        clean_text = raw_text.strip()
+                        if clean_text.startswith("```"):
+                            clean_text = clean_text.split("```")[1]
+                            if clean_text.startswith("json"):
+                                clean_text = clean_text[4:]
+                        clean_text = clean_text.strip()
+                        parsed = json.loads(clean_text)
+                        response_payload["structured_data"] = parsed
+                        # the "content" is somewhat meaningless for structured data, but we'll include raw
+                        response_payload["content"] = raw_text
+                    except json.JSONDecodeError as e:
+                        response_payload["error"] = f"Failed to parse structured output: {e}"
+                        response_payload["content"] = raw_text
+                else:
+                    response_payload["content"] = raw_text
+                    
+                return response_payload
+                
+            except (ResourceExhausted, ServiceUnavailable) as e:
+                if attempt == max_retries - 1:
+                    return {
+                        "content": "",
+                        "structured_data": None,
+                        "latency_ms": round((time.time() - start_time) * 1000, 2),
+                        "tokens_used": 0,
+                        "error": "Gemini API rate limit exceeded or service unavailable. Please try again later."
+                    }
+                await asyncio.sleep(base_delay * (2 ** attempt)) # Exponential backoff
+            except Exception as e:
+                error_msg = str(e)
+                if "403" in error_msg or "API_KEY" in error_msg.upper():
+                    error_msg = "Invalid Gemini API key. Please check your config."
+                    
+                return {
+                    "content": "",
+                    "structured_data": None,
+                    "latency_ms": round((time.time() - start_time) * 1000, 2),
+                    "tokens_used": 0,
+                    "error": f"AI Error: {error_msg}"
+                }
