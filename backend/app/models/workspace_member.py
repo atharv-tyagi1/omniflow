@@ -24,8 +24,8 @@ class WorkspaceMember(Base, TimestampMixin):
     role = Column(String(50), nullable=False, default="member")  # owner, admin, manager, member
 
     # Relationships
-    workspace = relationship("Workspace", back_populates="members")
-    user = relationship("User", back_populates="workspaces")
+    workspace = relationship("Workspace", back_populates="members", lazy="selectin")
+    user = relationship("User", back_populates="workspaces", lazy="selectin")
 
     __table_args__ = (
         Index("idx_wsmember_workspace", "workspace_id"),

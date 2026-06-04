@@ -47,4 +47,4 @@ class BackgroundScheduler:
                 await asyncio.wait_for(cls._stop_event.wait(), timeout=interval_seconds)
             except asyncio.TimeoutError:
                 # Timeout is expected, it means we should run again
-                pass
+                continue  # Safe no-op, run next cycle

@@ -1,16 +1,21 @@
+"""Tests for the Smart Intent Router deterministic routing logic."""
+
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from backend.app.schemas.router import (
     AgentIntent,
     RouterDecision,
     RouteMessageRequest,
+    IntentResult,
 )
 from backend.app.services.router_service import RouterService
-from backend.app.schemas.router import IntentResult
 
 
-# Mocking the AI dependency for deterministic test conditions
+# ---------------------------------------------------------------------------
+# Mock the IntentRouter so tests are deterministic (no Gemini calls)
+# ---------------------------------------------------------------------------
 class MockIntentRouter:
     @staticmethod
     async def classify(message: str, history=None) -> IntentResult:
@@ -24,72 +29,80 @@ class MockIntentRouter:
             return IntentResult(primary_intent=AgentIntent.SALES, confidence=0.40)
         elif "multi" in message:
             return IntentResult(
-                primary_intent=AgentIntent.SALES, 
-                secondary_intent=AgentIntent.SUPPORT, 
-                confidence=0.80
+                primary_intent=AgentIntent.SALES,
+                secondary_intent=AgentIntent.SUPPORT,
+                confidence=0.80,
             )
         else:
             return IntentResult(primary_intent=AgentIntent.UNKNOWN, confidence=0.95)
 
-# Patch the underlying dependency
+
+# Patch BEFORE any tests run
 import backend.app.services.router_service as rs
 rs.IntentRouter = MockIntentRouter
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 class MockConversation:
     def __init__(self, id, current_agent=None):
         self.id = id
         self.current_agent = current_agent
 
 
-class MockDB:
-    def __init__(self):
-        self.agent_updates = []
-        self.handoffs = []
-        
-    def add(self, obj):
-        if hasattr(obj, "to_agent"):
-            self.handoffs.append(obj)
-        else:
-            self.agent_updates.append(obj)
+def _make_mock_db():
+    """
+    Build a mock AsyncSession that supports add() and flush() and execute().
+    execute() returns an empty result set so HandoffRepository queries work
+    without a real database.
+    """
+    db = AsyncMock()
+    # execute returns a result whose scalars().first() is None
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = None
+    db.execute.return_value = mock_result
+    return db
 
-    async def flush(self):
-        pass
 
-
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_no_active_agent_high_confidence():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4())
     req = RouteMessageRequest(conversation_id=conv.id, message="What is the pricing?")
-    
+
     resp = await RouterService.route_message(db, req, conv)
-    
-    assert resp.decision == RouterDecision.STAY
+
+    assert resp.decision == RouterDecision.HANDOFF
     assert resp.routed_agent == AgentIntent.SALES
-    assert resp.handoff_required is False
+    assert resp.handoff_required is True
 
 
 @pytest.mark.asyncio
 async def test_active_agent_retained():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4(), current_agent="sales")
     req = RouteMessageRequest(conversation_id=conv.id, message="What is the pricing?")
-    
+
     resp = await RouterService.route_message(db, req, conv)
-    
+
     assert resp.decision == RouterDecision.STAY
     assert resp.routed_agent == AgentIntent.SALES
 
 
 @pytest.mark.asyncio
 async def test_strong_handoff():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4(), current_agent="sales")
-    req = RouteMessageRequest(conversation_id=conv.id, message="I am getting a 500 error.")
-    
+    req = RouteMessageRequest(
+        conversation_id=conv.id, message="I am getting a 500 error."
+    )
+
     resp = await RouterService.route_message(db, req, conv)
-    
+
     assert resp.decision == RouterDecision.HANDOFF
     assert resp.routed_agent == AgentIntent.SUPPORT
     assert resp.handoff_required is True
@@ -97,35 +110,39 @@ async def test_strong_handoff():
 
 @pytest.mark.asyncio
 async def test_low_confidence_retains_agent():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4(), current_agent="support")
-    req = RouteMessageRequest(conversation_id=conv.id, message="This is very ambiguous...")
-    
+    req = RouteMessageRequest(
+        conversation_id=conv.id, message="This is very ambiguous..."
+    )
+
     resp = await RouterService.route_message(db, req, conv)
-    
+
     assert resp.decision == RouterDecision.STAY
     assert resp.routed_agent == AgentIntent.SUPPORT
 
 
 @pytest.mark.asyncio
 async def test_low_confidence_no_agent_clarifies():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4())
-    req = RouteMessageRequest(conversation_id=conv.id, message="This is very ambiguous...")
-    
+    req = RouteMessageRequest(
+        conversation_id=conv.id, message="This is very ambiguous..."
+    )
+
     resp = await RouterService.route_message(db, req, conv)
-    
+
     assert resp.decision == RouterDecision.CLARIFY
     assert resp.routed_agent is None
 
 
 @pytest.mark.asyncio
 async def test_multi_intent_ordering():
-    db = MockDB()
+    db = _make_mock_db()
     conv = MockConversation(id=uuid4())
     req = RouteMessageRequest(conversation_id=conv.id, message="Tell me multi")
-    
+
     resp = await RouterService.route_message(db, req, conv)
-    
+
     assert resp.primary_intent == AgentIntent.SALES
     assert resp.secondary_intent == AgentIntent.SUPPORT

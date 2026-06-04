@@ -14,7 +14,7 @@ async def test_signup(async_client: AsyncClient):
     response = await async_client.post("/api/v1/auth/signup", json=TEST_USER)
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "success"
+    assert data["success"] is True
     assert "access_token" in data["data"]
     assert "user" in data["data"]
     assert data["data"]["user"]["email"] == TEST_USER["email"]
