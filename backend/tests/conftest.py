@@ -78,6 +78,9 @@ async def override_get_db():
 # ---------------------------------------------------------------------------
 from backend.app.main import app
 
+# Ensure all models are loaded into Base.metadata
+import backend.app.models
+
 app.dependency_overrides[get_db] = override_get_db
 
 

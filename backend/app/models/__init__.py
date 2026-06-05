@@ -12,6 +12,7 @@ from backend.app.models.customer import Customer
 from backend.app.models.conversation import Conversation
 from backend.app.models.message import Message
 from backend.app.models.handoff import Handoff
+from backend.app.models.lead_profile import LeadProfile
 
 # Knowledge Base models
 from backend.app.models.document import Document
@@ -49,6 +50,7 @@ __all__ = [
     "Conversation",
     "Message",
     "Handoff",
+    "LeadProfile",
     "Document",
     "DocumentChunk",
     "Ticket",
