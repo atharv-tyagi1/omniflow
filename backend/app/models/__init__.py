@@ -18,8 +18,9 @@ from backend.app.models.lead_profile import LeadProfile
 from backend.app.models.document import Document
 from backend.app.models.document_chunk import DocumentChunk
 
-# Support models
+# Support & Customer Care models
 from backend.app.models.ticket import Ticket
+from backend.app.models.customer_care_case import CustomerCareCase
 from backend.app.models.sentiment import Sentiment
 from backend.app.models.topic import Topic
 
@@ -54,6 +55,7 @@ __all__ = [
     "Document",
     "DocumentChunk",
     "Ticket",
+    "CustomerCareCase",
     "Sentiment",
     "Topic",
     "AnalyticsReport",
