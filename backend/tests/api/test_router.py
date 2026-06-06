@@ -56,8 +56,13 @@ def _make_mock_db():
     Build a mock AsyncSession that supports add() and flush() and execute().
     execute() returns an empty result set so HandoffRepository queries work
     without a real database.
+    
+    IMPORTANT: db.add() is synchronous on AsyncSession, so we use MagicMock
+    for it. Only flush/execute/commit are async.
     """
     db = AsyncMock()
+    # db.add is synchronous — override the async default with a plain MagicMock
+    db.add = MagicMock()
     # execute returns a result whose scalars().first() is None
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = None
