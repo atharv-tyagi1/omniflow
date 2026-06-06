@@ -12,9 +12,18 @@ def _ensure_registered():
     if _registered:
         return
     from backend.app.schemas.agent import AgentType
-    from backend.app.agents.sales import SalesAgent
+    # Register generic agent (fallback)
+    from backend.app.agents.generic import GenericAgent
+    AgentRegistry.register(AgentType.GENERIC.value, GenericAgent)
 
+    # Register sales agent
+    from backend.app.agents.sales import SalesAgent
     AgentRegistry.register(AgentType.SALES.value, SalesAgent)
+
+    # Register support agent
+    from backend.app.agents.support import SupportAgent
+    AgentRegistry.register(AgentType.SUPPORT.value, SupportAgent)
+
     _registered = True
 
 

@@ -65,8 +65,8 @@ async def test_conversation_service_unregistered_agent(db: AsyncSession, sample_
     with patch("backend.app.services.conversation_service.RouterService.route_message", new_callable=AsyncMock) as mock_r:
         mock_r.return_value = RouteMessageResponse(
             decision=RouterDecision.HANDOFF,
-            primary_intent=AgentIntent.SUPPORT,
-            routed_agent=AgentIntent.SUPPORT,
+            primary_intent=AgentIntent.CUSTOMER_CARE,
+            routed_agent=AgentIntent.CUSTOMER_CARE,
             confidence=0.9,
             handoff_required=True,
             route_reason="Test"

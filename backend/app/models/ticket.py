@@ -48,6 +48,13 @@ class Ticket(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
+    # Support Persistence Fields
+    issue_type = Column(String(50), nullable=True)
+    probable_cause = Column(Text, nullable=True)
+    last_troubleshooting_step = Column(Text, nullable=True)
+    escalation_reason = Column(Text, nullable=True)
+    last_interaction_at = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")
     customer = relationship("Customer", back_populates="tickets", lazy="selectin")
@@ -58,6 +65,9 @@ class Ticket(Base):
         Index("idx_tickets_workspace", "workspace_id"),
         Index("idx_tickets_status", "status"),
         Index("idx_tickets_priority", "priority"),
+        Index("idx_tickets_ws_issue", "workspace_id", "issue_type"),
+        Index("idx_tickets_ws_last_interaction", "workspace_id", "last_interaction_at"),
+        Index("idx_tickets_ws_conv_status", "workspace_id", "conversation_id", "status"),
     )
 
     def __repr__(self) -> str:
