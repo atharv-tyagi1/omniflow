@@ -43,6 +43,16 @@ class LeadProfileService:
         await db.refresh(lead)
         return lead
 
+    VALID_TRANSITIONS = {
+        SalesFunnelStage.new: {SalesFunnelStage.discovery, SalesFunnelStage.lost},
+        SalesFunnelStage.discovery: {SalesFunnelStage.qualified, SalesFunnelStage.lost},
+        SalesFunnelStage.qualified: {SalesFunnelStage.objection, SalesFunnelStage.ready_to_buy, SalesFunnelStage.lost},
+        SalesFunnelStage.objection: {SalesFunnelStage.ready_to_buy, SalesFunnelStage.lost},
+        SalesFunnelStage.ready_to_buy: {SalesFunnelStage.converted, SalesFunnelStage.lost},
+        SalesFunnelStage.converted: set(),
+        SalesFunnelStage.lost: set()
+    }
+
     @staticmethod
     async def move_to_stage(
         db: AsyncSession,
@@ -52,6 +62,19 @@ class LeadProfileService:
     ) -> Optional[LeadProfile]:
         """Explicitly transitions a lead to a new funnel stage."""
         repo = LeadProfileRepository(db)
+        
+        # Check current stage to enforce state machine rules
+        current_lead = await repo.get_by_workspace_and_customer(workspace_id, customer_id)
+        if not current_lead:
+            return None
+            
+        current_stage = current_lead.current_stage
+        
+        if current_stage != new_stage:
+            valid_next = LeadProfileService.VALID_TRANSITIONS.get(current_stage, set())
+            if new_stage not in valid_next:
+                raise ValueError(f"Invalid transition from {current_stage.value} to {new_stage.value}")
+        
         lead = await repo.update_stage(workspace_id, customer_id, new_stage)
         if lead:
             await db.commit()

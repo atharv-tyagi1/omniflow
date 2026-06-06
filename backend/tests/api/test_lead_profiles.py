@@ -16,32 +16,7 @@ from backend.tests.conftest import TestingSessionLocal, engine
 from backend.app.models.base import Base
 import backend.app.models  # ensure models are loaded
 
-@pytest_asyncio.fixture
-async def db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    async with TestingSessionLocal() as session:
-        yield session
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
-@pytest_asyncio.fixture
-async def sample_customer(db: AsyncSession):
-    workspace = Workspace(id=uuid4(), name="Test Workspace", plan="free")
-    db.add(workspace)
-    await db.commit()
-    await db.refresh(workspace)
-    
-    customer = Customer(
-        id=uuid4(),
-        workspace_id=workspace.id,
-        name="Test Lead Customer",
-        email="lead@example.com"
-    )
-    db.add(customer)
-    await db.commit()
-    await db.refresh(customer)
-    return workspace, customer
 
 
 @pytest.mark.asyncio
@@ -75,12 +50,23 @@ async def test_lead_stage_transitions(db: AsyncSession, sample_customer):
     
     # Transition
     updated_lead = await LeadProfileService.move_to_stage(
+        db, workspace.id, customer.id, SalesFunnelStage.discovery
+    )
+    assert updated_lead.current_stage == SalesFunnelStage.discovery
+    
+    updated_lead = await LeadProfileService.move_to_stage(
         db, workspace.id, customer.id, SalesFunnelStage.qualified
     )
     
     assert updated_lead is not None
     assert updated_lead.current_stage == SalesFunnelStage.qualified
     assert updated_lead.last_stage_change_at is not None
+    
+    # Invalid transition
+    with pytest.raises(ValueError):
+        await LeadProfileService.move_to_stage(
+            db, workspace.id, customer.id, SalesFunnelStage.new
+        )
 
 
 @pytest.mark.asyncio

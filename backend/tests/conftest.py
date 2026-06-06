@@ -149,3 +149,30 @@ async def auth_a(async_client: AsyncClient) -> _AuthBundle:
 @pytest_asyncio.fixture
 async def auth_b(async_client: AsyncClient) -> _AuthBundle:
     return await _signup(async_client, TEST_USER_B)
+
+@pytest_asyncio.fixture
+async def db():
+    async with TestingSessionLocal() as session:
+        yield session
+
+from uuid import uuid4
+from backend.app.models.workspace import Workspace
+from backend.app.models.customer import Customer
+
+@pytest_asyncio.fixture
+async def sample_customer(db: AsyncSession):
+    workspace = Workspace(id=uuid4(), name="Test Workspace", plan="free")
+    db.add(workspace)
+    await db.commit()
+    await db.refresh(workspace)
+    
+    customer = Customer(
+        id=uuid4(),
+        workspace_id=workspace.id,
+        name="Test Lead Customer",
+        email="lead@example.com"
+    )
+    db.add(customer)
+    await db.commit()
+    await db.refresh(customer)
+    return workspace, customer
