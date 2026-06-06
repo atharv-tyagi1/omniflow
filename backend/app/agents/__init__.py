@@ -1,11 +1,21 @@
 """Agent framework and implementations."""
-from backend.app.schemas.agent import AgentType
 from backend.app.agents.registry import AgentRegistry
 from backend.app.agents.factory import AgentFactory
 from backend.app.agents.base import BaseAgent
-from backend.app.agents.sales import SalesAgent
 
-# Auto-register agents
-AgentRegistry.register(AgentType.SALES.value, SalesAgent)
+_registered = False
 
-__all__ = ["AgentRegistry", "AgentFactory", "BaseAgent", "SalesAgent"]
+
+def _ensure_registered():
+    """Explicitly register all agent implementations. Idempotent."""
+    global _registered
+    if _registered:
+        return
+    from backend.app.schemas.agent import AgentType
+    from backend.app.agents.sales import SalesAgent
+
+    AgentRegistry.register(AgentType.SALES.value, SalesAgent)
+    _registered = True
+
+
+__all__ = ["AgentRegistry", "AgentFactory", "BaseAgent", "_ensure_registered"]

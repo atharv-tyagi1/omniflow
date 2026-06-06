@@ -10,7 +10,7 @@ from backend.app.schemas.agent import AgentResponse, AgentType
 
 @pytest.fixture
 def mock_router_sales():
-    with patch("backend.app.services.conversation_service.RouterService.route_message") as mock:
+    with patch("backend.app.services.conversation_service.RouterService.route_message", new_callable=AsyncMock) as mock:
         mock.return_value = RouteMessageResponse(
             decision=RouterDecision.HANDOFF,
             primary_intent=AgentIntent.SALES,
@@ -25,7 +25,7 @@ def mock_router_sales():
 @pytest.fixture
 def mock_sales_agent_respond():
     """Mock the SalesAgent.respond method at the instance level via the factory."""
-    with patch("backend.app.agents.sales.SalesAgent.respond") as mock:
+    with patch("backend.app.agents.sales.SalesAgent.respond", new_callable=AsyncMock) as mock:
         mock.return_value = AgentResponse(
             content="Sales response",
             confidence=0.9,
@@ -62,7 +62,7 @@ async def test_conversation_service_unregistered_agent(db: AsyncSession, sample_
     workspace, customer = sample_customer
     conversation_id = uuid4()
 
-    with patch("backend.app.services.conversation_service.RouterService.route_message") as mock_r:
+    with patch("backend.app.services.conversation_service.RouterService.route_message", new_callable=AsyncMock) as mock_r:
         mock_r.return_value = RouteMessageResponse(
             decision=RouterDecision.HANDOFF,
             primary_intent=AgentIntent.SUPPORT,

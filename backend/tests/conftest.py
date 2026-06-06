@@ -46,12 +46,12 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Test Engine & Session
 # ---------------------------------------------------------------------------
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+import os
+TEST_DATABASE_URL = "sqlite+aiosqlite:///test_db.sqlite"
 
 engine = create_async_engine(
     TEST_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,  # Single shared connection for in-memory SQLite
 )
 
 TestingSessionLocal = async_sessionmaker(
@@ -59,6 +59,15 @@ TestingSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+# Clean up local test db at exit
+import atexit
+def cleanup_temp_db():
+    try:
+        os.unlink("test_db.sqlite")
+    except OSError:
+        pass
+atexit.register(cleanup_temp_db)
 
 
 async def override_get_db():
