@@ -1,35 +1,53 @@
-class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: any) {
+import { ZodError } from "zod"
+import { hasCapability, CapabilityKeys } from "@/lib/api-capabilities/registry"
+
+interface FetchOptions extends RequestInit {
+  params?: Record<string, string>
+  requiredCapability?: CapabilityKeys
+}
+
+export class ApiError extends Error {
+  constructor(public status: number, public message: string, public code?: string) {
     super(message)
     this.name = "ApiError"
   }
 }
 
-class RateLimitError extends ApiError {
+export class RateLimitError extends ApiError {
   constructor(public retryAfterSeconds: number) {
-    super(429, "Too many requests. Please try again shortly.")
+    super(429, "Too many requests. Please try again shortly.", "RATE_LIMIT")
     this.name = "RateLimitError"
   }
 }
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-  
-  const defaultHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+export async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+  const { params, requiredCapability, ...init } = options
+
+  if (requiredCapability && !hasCapability(requiredCapability)) {
+    throw new ApiError(503, `Feature disabled: ${requiredCapability}`, "CAPABILITY_DISABLED")
   }
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  const url = new URL(`${baseUrl}${endpoint}`)
   
-  // Future: inject Auth JWT here when implemented
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) url.searchParams.append(key, value)
+    })
+  }
+
+  const headers = new Headers(init.headers)
+  headers.set("Content-Type", "application/json")
   
-  const url = `${baseUrl}${endpoint}`
-  
+  const token = localStorage.getItem("auth_token")
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
+    const response = await fetch(url.toString(), {
+      ...init,
+      headers,
     })
 
     if (response.status === 429) {
@@ -45,12 +63,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
       } catch {
         errorData = { message: response.statusText }
       }
-      throw new ApiError(response.status, errorData.detail || errorData.message || "API request failed", errorData)
+      throw new ApiError(response.status, errorData.detail || errorData.message || "API request failed", errorData.code)
     }
 
-    // Handle empty 204 responses
     if (response.status === 204) {
-      return null
+      return null as any // Return null for 204 NO CONTENT
     }
 
     return await response.json()
@@ -60,4 +77,13 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     }
     throw new Error(`Network error: ${(error as Error).message}`)
   }
+}
+
+export function handleZodError(error: unknown): never {
+  if (error instanceof ZodError) {
+    // Sanitize the internal zod error payload
+    const issues = error.issues.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")
+    throw new ApiError(422, `Invalid response format: ${issues}`, "VALIDATION_ERROR")
+  }
+  throw error
 }

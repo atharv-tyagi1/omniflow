@@ -21,7 +21,7 @@ export interface AuthContextType {
   isLoading: boolean
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 // MOCK CONSTANTS FOR DEVELOPMENT
 const MOCK_USER: User = {

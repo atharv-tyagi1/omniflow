@@ -9,6 +9,14 @@ import { cn } from "@/lib/utils"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
 
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false)
+    }
+    window.addEventListener("keydown", handleEsc)
+    return () => window.removeEventListener("keydown", handleEsc)
+  }, [])
+
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       {/* Mobile sidebar backdrop */}

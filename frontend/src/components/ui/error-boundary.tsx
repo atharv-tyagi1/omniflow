@@ -26,7 +26,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo)
-    // Optional: Send to telemetry here
+    try {
+      // Lazy load to avoid circular deps if any
+      const { trackEvent } = require("@/lib/telemetry")
+      trackEvent("widget_failure", { error: error.message, componentStack: errorInfo.componentStack })
+    } catch (e) {
+      // Ignore
+    }
   }
 
   public render() {

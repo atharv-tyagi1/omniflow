@@ -20,6 +20,8 @@ export default function ApiManagementPage() {
           variant="coming-soon" 
           title="API Management Portal Coming Soon"
           description="We are currently building the API Key generation and rotation service. This will be available in a future phase."
+          dependency="GET /api/public/v1/apikeys"
+          status="Missing"
         />
       </div>
     )

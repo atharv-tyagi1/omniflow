@@ -21,6 +21,8 @@ export default function BusinessAnalystPage() {
           variant="coming-soon" 
           title="Business Insights Engine Coming Soon"
           description="We are currently fine-tuning the deterministic insight generation engine for Phase 14. This feature will be available shortly."
+          dependency="GET /api/internal/v1/business/insights"
+          status="Missing"
         />
       </div>
     )

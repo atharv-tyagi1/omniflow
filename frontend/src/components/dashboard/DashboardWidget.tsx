@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 
 export interface DashboardWidgetProps {
   title: string
@@ -56,7 +57,11 @@ export function DashboardWidget({
             )}
           </div>
         ) : (
-          <div className="mt-4">{children}</div>
+          <div className="mt-4">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </div>
         )}
       </CardContent>
     </Card>

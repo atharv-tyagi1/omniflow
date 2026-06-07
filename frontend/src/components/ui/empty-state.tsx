@@ -10,9 +10,11 @@ export interface EmptyStateProps {
   description?: string
   action?: React.ReactNode
   className?: string
+  dependency?: string
+  status?: string
 }
 
-export function EmptyState({ variant = "generic", title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ variant = "generic", title, description, action, className, dependency, status }: EmptyStateProps) {
   const defaults = {
     "no-conversations": {
       icon: <Inbox className="h-10 w-10 text-[var(--color-text-muted)]" />,
@@ -65,7 +67,21 @@ export function EmptyState({ variant = "generic", title, description, action, cl
         <p className="mb-4 mt-2 text-sm text-[var(--color-text-muted)]">
           {description || current.description}
         </p>
-        {action && <div className="mt-2">{action}</div>}
+        
+        {dependency && (
+          <div className="mt-4 p-4 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] text-left w-full max-w-sm">
+            <div className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Dependency Constraint</div>
+            <code className="text-xs bg-black/20 px-2 py-1 rounded text-[var(--color-info)] break-all">{dependency}</code>
+            {status && (
+              <div className="mt-2 flex items-center space-x-2">
+                <div className="h-2 w-2 rounded-full bg-[var(--color-warning)] animate-pulse" />
+                <span className="text-xs font-medium text-[var(--color-text-muted)]">Status: {status}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {action && <div className="mt-6">{action}</div>}
       </div>
     </div>
   )
