@@ -38,6 +38,7 @@ class CustomerCareAgentOutput(BaseModel):
     account_issue_type: Optional[str] = Field(default=None, description="Account issue type if applicable.")
     refund_requested: bool = Field(default=False, description="Whether the user explicitly requested a refund.")
     refund_amount_requested: Optional[Decimal] = Field(default=None, description="Specific monetary amount requested for refund.")
+    refund_currency: Optional[str] = Field(default=None, description="Currency of the requested refund (e.g. USD, EUR) if specified.")
     sentiment: CustomerSentiment = Field(description="Current detected sentiment of the user.")
     resolution_timeline: Optional[str] = Field(default=None, description="Clear timeline provided to the user, if resolution is not immediate.")
     resolution_status: CustomerCareStage = Field(description="The updated stage of the customer care case.")
@@ -66,6 +67,15 @@ class CustomerCareCaseResponse(BaseModel):
     escalation_reason: Optional[str]
     resolution_timeline: Optional[str]
     last_interaction_at: Optional[datetime]
+
+    # Phase 11 Additive
+    handoff_recommended: bool
+    next_agent: Optional[str]
+    source_agent: Optional[str]
+    parent_case_id: Optional[UUID] = None
+    handoff_reason: Optional[str] = None
+    handoff_stage: Optional[str] = None
+    source_channel: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

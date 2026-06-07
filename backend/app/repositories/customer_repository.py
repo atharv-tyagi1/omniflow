@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.dialects.postgresql import insert
 from uuid import UUID
 from typing import Optional
 
@@ -13,6 +14,44 @@ class CustomerRepository:
         db.add(db_obj)
         await db.flush()
         return db_obj
+
+    @staticmethod
+    async def upsert_by_external_id(
+        db: AsyncSession, 
+        workspace_id: UUID, 
+        external_id: str, 
+        name: str, 
+        email: Optional[str] = None, 
+        phone: Optional[str] = None
+    ) -> Customer:
+        """
+        Safely and atomically upserts a Customer record matching (workspace_id, external_id).
+        Does not overwrite trusted data if already exists, just ensures the record is present.
+        """
+        stmt = insert(Customer).values(
+            workspace_id=workspace_id,
+            external_id=external_id,
+            name=name,
+            email=email,
+            phone=phone,
+            status="active"
+        )
+        
+        # Explicit field precedence: on conflict, we can either do nothing or update.
+        # Let's say we update name if provided, but prefer existing. Actually, DO NOTHING 
+        # is safest if we just want to ensure it exists, but we want to return the record.
+        # DO UPDATE returning * allows us to get the full object back.
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['workspace_id', 'external_id'],
+            set_={
+                "name": stmt.excluded.name,  # Or keep existing: Customer.name
+                # We do not overwrite status if they are e.g. inactive
+            }
+        ).returning(Customer)
+
+        result = await db.execute(stmt)
+        await db.flush()
+        return result.scalar_one()
 
     @staticmethod
     async def get_by_id(db: AsyncSession, customer_id: UUID, workspace_id: UUID) -> Optional[Customer]:

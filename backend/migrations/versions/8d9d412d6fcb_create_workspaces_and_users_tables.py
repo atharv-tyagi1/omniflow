@@ -54,7 +54,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["workspace_id"], ["workspaces.id"], ondelete="RESTRICT"
+            ["workspace_id"], ["workspaces.id"], name="users_workspace_id_fkey", ondelete="RESTRICT"
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),

@@ -30,6 +30,14 @@ from backend.app.models.router_event import RouterEvent
 from backend.app.models.dataset import Dataset
 from backend.app.models.dataset_query import DatasetQuery
 
+# Phase 12: Analytics Foundation
+from backend.app.models.analytics import (
+    AnalyticsOutbox,
+    AnalyticsEvent,
+    AnalyticsHourlyRollup,
+    AnalyticsDailyRollup,
+)
+
 # Workflow models
 from backend.app.models.workflow import Workflow
 from backend.app.models.workflow_run import WorkflowRun
@@ -40,6 +48,43 @@ from backend.app.models.voice_interaction import VoiceInteraction
 # System models
 from backend.app.models.notification import Notification
 from backend.app.models.audit_log import AuditLog
+
+# Phase 13: Conversation Intel Models
+from backend.app.models.intel import (
+    TopicRegistry,
+    ConversationIntelligence,
+    ConversationIntent,
+    ConversationTopic,
+    ConversationSentiment,
+    ConversationResolution,
+    ConversationSummary,
+)
+from backend.app.models.intel_rollups import (
+    IntelDailyTopicRollup,
+    IntelDailyIntentRollup,
+    IntelDailySentimentRollup,
+    IntelDailyResolutionRollup,
+)
+
+# Phase 13.5: Public API Models
+from backend.app.models.public_api import (
+    PublicApiKey,
+    PublicApiKeyScope,
+    PublicApiKeyRotation,
+    IdempotencyKey,
+    PublicWebhook,
+    PublicAsyncJob,
+)
+
+# Phase 14: Business Analyst Engine Models
+from backend.app.models.business_analyst import (
+    BusinessInsight,
+    BusinessRecommendation,
+    ExecutiveReport,
+    InsightLineage,
+    BusinessQuestionAudit,
+)
+
 
 __all__ = [
     "Base",
@@ -67,4 +112,26 @@ __all__ = [
     "VoiceInteraction",
     "Notification",
     "AuditLog",
+    "TopicRegistry",
+    "ConversationIntelligence",
+    "ConversationIntent",
+    "ConversationTopic",
+    "ConversationSentiment",
+    "ConversationResolution",
+    "ConversationSummary",
+    "IntelDailyTopicRollup",
+    "IntelDailyIntentRollup",
+    "IntelDailySentimentRollup",
+    "IntelDailyResolutionRollup",
+    "PublicApiKey",
+    "PublicApiKeyScope",
+    "PublicApiKeyRotation",
+    "IdempotencyKey",
+    "PublicWebhook",
+    "PublicAsyncJob",
+    "BusinessInsight",
+    "BusinessRecommendation",
+    "ExecutiveReport",
+    "InsightLineage",
+    "BusinessQuestionAudit",
 ]

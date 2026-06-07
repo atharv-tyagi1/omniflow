@@ -18,8 +18,8 @@ Your ONLY job is to classify a customer message into an intent.
 
 Approved intent categories:
 - "sales"         → customer wants to buy, learn about products, pricing, or upgrade
-- "support"       → customer has a technical problem, bug, or needs troubleshooting help
-- "customer_care" → customer is frustrated, upset, seeking empathy, complaint, refund
+- "support"       → customer has a technical problem, login/access/system error, bug, product usage issues, or needs troubleshooting help
+- "customer_care" → customer is frustrated, seeking empathy, billing issue, refund request, chargeback, complaint resolution, or retention
 - "unknown"       → message is ambiguous or cannot be classified
 
 Evaluate the user message and optionally the conversation history to determine the primary intent, an optional secondary intent, and your confidence score (0.0 to 1.0)."""

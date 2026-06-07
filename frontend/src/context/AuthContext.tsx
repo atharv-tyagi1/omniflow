@@ -1,88 +1,88 @@
-"use client";
+"use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-import { useRouter, usePathname } from 'next/navigation';
+import * as React from "react"
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  workspace_id: string;
+export interface User {
+  id: string
+  name: string
+  email: string
+  role: string
 }
 
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (token: string, userData: User) => void;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
+export interface Workspace {
+  id: string
+  name: string
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export interface AuthContextType {
+  user: User | null
+  workspace: Workspace | null
+  isAuthenticated: boolean
+  isLoading: boolean
+}
+
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
+
+// MOCK CONSTANTS FOR DEVELOPMENT
+const MOCK_USER: User = {
+  id: "usr_mock123",
+  name: "Developer",
+  email: "dev@omniflow.com",
+  role: "admin"
+}
+
+// Ensure this matches the backend test DB UUID or typical test workspace
+const MOCK_WORKSPACE: Workspace = {
+  id: "00000000-0000-0000-0000-000000000000",
+  name: "OmniFlow Dev Workspace"
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
+  const [state, setState] = React.useState<AuthContextType>({
+    user: null,
+    workspace: null,
+    isAuthenticated: false,
+    isLoading: true
+  })
 
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setUser(null);
-        return;
-      }
-      
-      const response = await api.get<any>('/api/v1/auth/me');
-      if (response && response.data) {
-        setUser(response.data);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error("Failed to check auth:", error);
-      setUser(null);
-      localStorage.removeItem('access_token');
-    } finally {
-      setIsLoading(false);
+  React.useEffect(() => {
+    // CRITICAL PRODUCTION GUARD
+    const isProd = process.env.NODE_ENV === "production"
+    const devAuthEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED === "true"
+
+    if (isProd && devAuthEnabled) {
+      throw new Error("FATAL: DEV_AUTH_ENABLED=true is not permitted in production builds.")
     }
-  };
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('access_token', token);
-    setUser(userData);
-  };
-
-  const logout = async () => {
-    try {
-      await api.post('/api/v1/auth/logout', {});
-    } catch (e) {
-      console.error("Logout failed on server", e);
-    } finally {
-      localStorage.removeItem('access_token');
-      setUser(null);
-      router.push('/login');
+    if (devAuthEnabled || process.env.NODE_ENV === "development") {
+      setState({
+        user: MOCK_USER,
+        workspace: MOCK_WORKSPACE,
+        isAuthenticated: true,
+        isLoading: false
+      })
+    } else {
+      // Future: Real JWT verification flow
+      setState({
+        user: null,
+        workspace: null,
+        isAuthenticated: false,
+        isLoading: false
+      })
     }
-  };
+  }, [])
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={state}>
       {children}
     </AuthContext.Provider>
-  );
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider")
   }
-  return context;
+  return context
 }

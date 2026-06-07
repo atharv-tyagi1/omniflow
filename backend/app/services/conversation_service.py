@@ -15,6 +15,9 @@ from backend.app.schemas.router import RouteMessageRequest, RouteMessageResponse
 from backend.app.schemas.agent import AgentResponse
 from backend.app.agents.factory import AgentFactory
 from backend.app.agents.registry import AgentRegistry
+from backend.app.core.config import settings
+from backend.app.services.analytics.emitter import AnalyticsEventEmitter
+from backend.app.schemas.analytics import AnalyticsEventType
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,8 @@ class ConversationService:
         return await ConversationRepository.create(
             db=db, workspace_id=workspace_id, customer_id=customer_id, channel=channel
         )
+        # Note: conversation_started analytics event is emitted via handle_message
+        # or backfill, not here, to avoid double-counting for pre-existing flows.
 
     @staticmethod
     async def get_conversation(
@@ -64,8 +69,62 @@ class ConversationService:
             content=content,
         )
 
+        # Phase 12: Emit analytics event for messages (durable outbox)
+        if sender_type == "customer":
+            await AnalyticsEventEmitter.emit(
+                db=db,
+                workspace_id=workspace_id,
+                event_type=AnalyticsEventType.MESSAGE_RECEIVED,
+                conversation_id=conversation_id,
+                metadata={"channel": "web"},
+                idempotency_key=f"msg_received:{user_msg.id}",
+            )
+
         # 2. If message is from a customer, trigger the AI agent pipeline
         if sender_type == "customer":
+            try:
+                # Feature flag check for new Handoff architecture
+                use_v2 = getattr(settings, "HANDOFF_V2_ENABLED", True)
+                
+                if use_v2:
+                    # New Phase 11 Handoff V2 Flow
+                    agent_response = await ConversationService.handle_message(
+                        db=db,
+                        workspace_id=workspace_id,
+                        customer_id=customer_id,
+                        conversation_id=conversation_id,
+                        query=content,
+                        source_message_id=str(user_msg.id)
+                    )
+                    
+                    # Persist the AI agent's reply
+                    await ConversationRepository.add_message(
+                        db=db,
+                        conversation_id=conversation_id,
+                        sender_type=agent_response.agent_name or agent_response.agent_type,
+                        content=agent_response.content,
+                    )
+                    return user_msg
+            except Exception as e:
+                logger.error(
+                    "Agent pipeline v2 failed for conversation %s",
+                    conversation_id,
+                    exc_info=False,
+                    extra={
+                        "event_type": "handoff_v2_fallback",
+                        "failure_class": e.__class__.__name__,
+                        "conversation_id": str(conversation_id),
+                        "workspace_id": str(workspace_id),
+                        "from_agent": conversation.current_agent or "system",
+                        "target_agent": "v1_legacy",
+                        "reason": "V2 Pipeline Exception",
+                        "recoverable": True
+                    }
+                )
+                # Continue and gracefully fallback to V1
+                pass
+
+            # V1 Legacy Flow
             try:
                 # Fetch recent history for context
                 history_msgs = (
@@ -159,6 +218,8 @@ class ConversationService:
         customer_id: UUID,
         conversation_id: UUID,
         query: str,
+        source_message_id: Optional[str] = None,
+        lineage: Optional[dict] = None
     ) -> AgentResponse:
         """
         Orchestrates routing and agent execution.
@@ -186,46 +247,26 @@ class ConversationService:
             history=[],
         )
 
-        # Determine the target agent type
-        target_agent_type = (
-            decision_response.routed_agent.value
-            if decision_response.routed_agent
-            else (
-                decision_response.primary_intent.value
-                if decision_response.primary_intent
-                else "unknown"
-            )
+        primary_intent = decision_response.primary_intent.value if decision_response.primary_intent else "unknown"
+
+        # 2. Handoff Orchestration
+        from backend.app.services.handoff.coordinator import HandoffCoordinator
+        
+        # Fetch recent history for context builder
+        history_msgs = await ConversationRepository.get_messages_by_conversation(
+            db, conversation_id
         )
+        recent_messages = [m.content for m in history_msgs[-10:]]
 
-        # Fallback if agent type is not registered
-        if not AgentRegistry.is_registered(target_agent_type):
-            logger.warning(
-                f"Target agent {target_agent_type} is not registered. "
-                "Falling back to generic/error response."
-            )
-            return AgentResponse(
-                content=(
-                    "I'm not quite sure how to help with that yet, or the specific "
-                    "agent is offline. Let me connect you with someone who can."
-                ),
-                confidence=decision_response.confidence,
-                agent_name="System",
-                handoff_recommended=True,
-                requires_human=True,
-                sentiment="neutral",
-            )
-
-        # 2. Resolve Agent
-        agent = AgentFactory.create_agent(target_agent_type)
-
-        # 3. Execute Agent
-        response = await agent.respond(
+        response = await HandoffCoordinator.handle_transition(
             db=db,
-            conversation_id=conversation_id,
-            customer_id=customer_id,
-            workspace_id=workspace_id,
+            conversation=conversation,
+            primary_intent=primary_intent,
             query=query,
+            recent_messages=recent_messages,
             router_metadata=decision_response.model_dump(),
+            source_message_id=source_message_id,
+            lineage=lineage
         )
 
         return response

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, Numeric, Index
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, Numeric, Index, text
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, timezone
 import uuid
@@ -27,8 +27,28 @@ class CustomerCareCase(Base, TimestampMixin):
     
     last_interaction_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+    # Phase 11 additive tracking fields
+    handoff_recommended = Column(Boolean, default=False)
+    next_agent = Column(String(50), nullable=True)
+    source_agent = Column(String(50), nullable=True)
+    
+    # Phase 11 additive lineage fields
+    parent_case_id = Column(UUID(as_uuid=True), ForeignKey("customer_care_cases.id", ondelete="SET NULL"), nullable=True)
+    handoff_reason = Column(Text, nullable=True)
+    handoff_stage = Column(String(50), nullable=True)
+    source_channel = Column(String(50), nullable=True)
+
     __table_args__ = (
         Index("idx_cc_cases_workspace", "workspace_id"),
-        Index("idx_cc_cases_ws_conv", "workspace_id", "conversation_id"),
-        Index("idx_cc_cases_ws_stage", "workspace_id", "current_stage"),
+        Index("idx_cc_cases_ws_conv_stage", "workspace_id", "conversation_id", "current_stage"),
+        Index("idx_cc_cases_ws_interaction", "workspace_id", "last_interaction_at"),
+        Index("idx_cc_cases_ws_complaint", "workspace_id", "complaint_type"),
+        # Concurrency safety: only one active case per conversation/workspace
+        Index(
+            "idx_cc_cases_unique_active",
+            "workspace_id", "conversation_id",
+            unique=True,
+            postgresql_where=text("current_stage NOT IN ('resolved', 'closed')"),
+            sqlite_where=text("current_stage NOT IN ('resolved', 'closed')")
+        )
     )

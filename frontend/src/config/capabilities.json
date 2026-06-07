@@ -1,0 +1,20 @@
+{
+  "analyticsOverview": true,
+  "analyticsConversations": true,
+  "analyticsSales": true,
+  "analyticsSupport": true,
+  "analyticsCustomerCare": true,
+  "analyticsHandoffs": true,
+  "analyticsTrends": true,
+  "intelTopics": true,
+  "intelSentiment": true,
+  "intelAnomalies": true,
+  "businessQuestions": true,
+  "businessInsights": false,
+  "businessRecommendations": false,
+  "businessReports": false,
+  "agentMetrics": false,
+  "apiKeys": false,
+  "knowledgeDocuments": true,
+  "knowledgeDatasets": false
+}

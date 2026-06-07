@@ -97,8 +97,12 @@ app.dependency_overrides[get_db] = override_get_db
 # Core Fixtures
 # ---------------------------------------------------------------------------
 @pytest_asyncio.fixture(autouse=True)
-async def setup_db():
-    """Create all tables before each test, drop them after."""
+async def setup_db(request):
+    """Create all tables before each test, drop them after. Skip for clean migration tests."""
+    if "test_clean_migrations" in request.node.module.__name__:
+        yield
+        return
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield

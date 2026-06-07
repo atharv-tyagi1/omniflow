@@ -65,7 +65,10 @@ def run_migrations_online() -> None:
 
     """
     cfg = config.get_section(config.config_ini_section, {})
-    cfg["sqlalchemy.url"] = settings.SYNC_DATABASE_URL
+    db_url = config.get_main_option("sqlalchemy.url")
+    if not db_url:
+        db_url = settings.SYNC_DATABASE_URL
+    cfg["sqlalchemy.url"] = db_url
 
     connectable = engine_from_config(
         cfg,

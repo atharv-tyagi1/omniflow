@@ -54,23 +54,38 @@ async def list_conversations(
 
 @router.post("/{conversation_id}/analyze")
 async def analyze_conversation_intel(
-    conversation_id: UUID, db: AsyncSession = Depends(get_db)
+    conversation_id: UUID, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace_id: UUID = Depends(get_current_workspace_id),
 ):
     """
-    Manually trigger the conversation intel analysis to extract sentiment and topics.
+    Manually trigger the conversation intel analysis by queueing it via the Analytics Outbox.
     """
-    from backend.app.services.intel_service import IntelService
+    from backend.app.services.analytics.emitter import AnalyticsEventEmitter
+    from backend.app.schemas.analytics import AnalyticsEventType
+    from backend.app.controllers.conversation_controller import ConversationController
 
     try:
-        result = await IntelService.analyze_conversation(db, conversation_id)
-        if result["status"] == "error":
-            raise HTTPException(status_code=500, detail=result["reason"])
-        return result
-    except HTTPException:
-        raise
+        # Verify conversation exists and we have workspace_id
+        conversation = await ConversationController.get_by_id(db, conversation_id, workspace_id)
+        
+        # Enqueue analysis event
+        await AnalyticsEventEmitter.emit(
+            db=db,
+            workspace_id=workspace_id,
+            event_type=AnalyticsEventType.CONVERSATION_INTEL_PENDING,
+            conversation_id=conversation_id,
+            idempotency_key=f"manual_intel:{conversation_id}"
+        )
+        await db.commit()
+        return SuccessResponse(
+            data={"status": "queued"},
+            message="Conversation intel analysis queued."
+        )
     except Exception as e:
         logging.getLogger(__name__).error(
-            f"Failed to analyze conversation {conversation_id}: {e}"
+            f"Failed to queue conversation intel for {conversation_id}: {e}"
         )
         raise HTTPException(status_code=500, detail=str(e))
 

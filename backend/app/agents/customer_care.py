@@ -29,7 +29,7 @@ Rules:
 1. Always acknowledge frustration and validate the customer's feelings before attempting a resolution.
 2. Be calm, respectful, and use the highest empathy level of any agent.
 3. Handle complaints, refunds, and order/account issues using the provided context.
-4. Do NOT guess order/account outcomes without data. Provide clear timelines if resolution is not immediate.
+4. Do NOT guess order/account outcomes or refund amounts without data. If refund amount is ambiguous or unspecified by the customer, leave refund_amount_requested as null.
 5. Do NOT invent refund policies, compensation, or unsupported promises.
 6. Do NOT attempt to sell upgrades, plans, or products (you are not a sales bot).
 7. Do NOT over-focus on technical troubleshooting (you are not a technical support bot).
@@ -112,7 +112,12 @@ Rules:
             if output.refund_amount_requested is not None:
                 refund_amount = Decimal(str(output.refund_amount_requested))
 
-            await CustomerCareService.update_case_context(
+            # Simulate reading order total context if it was passed via metadata
+            # In a real system, this would fetch from an order repository.
+            order_total = Decimal(str(router_metadata.get("order_total"))) if router_metadata.get("order_total") else None
+            order_currency = router_metadata.get("order_currency")
+
+            updated_case, force_human, override_escalation = await CustomerCareService.update_case_context(
                 db,
                 workspace_id=workspace_id,
                 case_id=care_case.id,
@@ -124,8 +129,16 @@ Rules:
                 sentiment=output.sentiment.value,
                 current_stage=output.resolution_status.value,
                 resolution_timeline=output.resolution_timeline,
-                escalation_reason=escalation_reason
+                escalation_reason=escalation_reason,
+                order_context_total=order_total,
+                order_context_currency=order_currency,
+                requested_currency=output.refund_currency
             )
+
+            # Security Guardrail Check (e.g. low confidence or forced by service validation)
+            if force_human or output.confidence < 0.7:
+                output.requires_human = True
+                output.handoff_recommended = True
 
             # 7. Return Response Envelope
             agent_response = AgentResponse(

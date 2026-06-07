@@ -22,6 +22,7 @@ class Customer(Base, TimestampMixin):
     email = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
     telegram_id = Column(String(255), nullable=True)
+    external_id = Column(String(255), nullable=True)  # New for Public API Integration
     status = Column(String(20), nullable=False, default="active")
 
     # Relationships
@@ -35,6 +36,9 @@ class Customer(Base, TimestampMixin):
         Index("idx_customers_workspace", "workspace_id"),
         Index("idx_customers_email", "email"),
         Index("idx_customers_telegram", "telegram_id"),
+        Index("idx_customers_external", "external_id"),
+        # Phase 13.5: Ensure unique external identities per workspace
+        __import__("sqlalchemy").UniqueConstraint("workspace_id", "external_id", name="uq_workspace_customer_external_id"),
     )
 
     def __repr__(self) -> str:

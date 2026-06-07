@@ -16,6 +16,8 @@ from backend.app.api.v1.telegram import router as telegram_router
 from backend.app.api.v1.customers import router as customers_router
 from backend.app.api.v1.tickets import router as tickets_router
 from backend.app.api.v1.notifications import router as notifications_router
+from backend.app.api.v1.intel import router as intel_router
+from backend.app.api.internal.v1.api import router as internal_v1_router
 from backend.app.core.exceptions import OmniFlowError
 from backend.app.core.response import error_response
 from backend.app.core.scheduler import BackgroundScheduler
@@ -69,9 +71,26 @@ app.include_router(
     analyst_router, tags=["analyst"]
 )  # Mounts /api/query and /api/limits
 app.include_router(telegram_router, prefix=settings.API_V1_STR)
+app.include_router(intel_router, prefix=settings.API_V1_STR)
+app.include_router(internal_v1_router, prefix="/api/internal/v1")
 
 
-# Global custom exception handler
+from backend.app.core.public_errors import (
+    PublicAPIException,
+    public_api_exception_handler,
+    public_validation_exception_handler,
+    public_http_exception_handler,
+    public_generic_exception_handler
+)
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# Register Public API Handlers
+app.add_exception_handler(PublicAPIException, public_api_exception_handler)
+app.add_exception_handler(RequestValidationError, public_validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, public_http_exception_handler)
+
+# Global custom exception handler (Fallback for internal APIs)
 @app.exception_handler(OmniFlowError)
 async def omniflow_exception_handler(request: Request, exc: OmniFlowError):
     # Map exception types to HTTP status codes
@@ -92,6 +111,10 @@ async def omniflow_exception_handler(request: Request, exc: OmniFlowError):
 # Fallback general exception handler
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    # Let public exception handler process it if it's a public route
+    if request.url.path.startswith("/api/public"):
+        return await public_generic_exception_handler(request, exc)
+    
     return JSONResponse(
         status_code=500,
         content=error_response(code="INTERNAL_SERVER_ERROR", message=str(exc)),
