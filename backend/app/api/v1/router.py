@@ -10,9 +10,12 @@ from backend.app.middleware.workspace_guard import get_current_workspace_id
 from backend.app.models.user import User
 from backend.app.services.router_service import RouterService
 from backend.app.controllers.conversation_controller import ConversationController
+from backend.app.api.v1.api_keys import router as api_keys_router
 
 
 router = APIRouter(prefix="/router", tags=["router"])
+# We should probably mount api_keys to a main v1 APIRouter, but this file is named `router.py`.
+# Wait, let me check how other v1 routers are mounted in main.py.
 
 
 @router.post("/route", response_model=SuccessResponse)

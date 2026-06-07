@@ -17,6 +17,7 @@ from backend.app.api.v1.customers import router as customers_router
 from backend.app.api.v1.tickets import router as tickets_router
 from backend.app.api.v1.notifications import router as notifications_router
 from backend.app.api.v1.intel import router as intel_router
+from backend.app.api.v1.api_keys import router as api_keys_router
 from backend.app.api.internal.v1.api import router as internal_v1_router
 from backend.app.core.exceptions import OmniFlowError
 from backend.app.core.response import error_response
@@ -64,15 +65,19 @@ app.include_router(documents_router, prefix=settings.API_V1_STR)
 app.include_router(datasets_router, prefix=settings.API_V1_STR)
 app.include_router(workflows_router, prefix=settings.API_V1_STR)
 app.include_router(router_router, prefix=settings.API_V1_STR)
+app.include_router(api_keys_router, prefix=settings.API_V1_STR)
 app.include_router(
     analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"]
 )
 app.include_router(
     analyst_router, tags=["analyst"]
 )  # Mounts /api/query and /api/limits
+from backend.app.api.public.v1.router import router as public_v1_router
+
 app.include_router(telegram_router, prefix=settings.API_V1_STR)
 app.include_router(intel_router, prefix=settings.API_V1_STR)
 app.include_router(internal_v1_router, prefix="/api/internal/v1")
+app.include_router(public_v1_router, prefix="/api/public/v1", tags=["public"])
 
 
 from backend.app.core.public_errors import (

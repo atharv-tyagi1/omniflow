@@ -18,12 +18,20 @@ class PublicApiKey(Base):
     key_hash = Column(String, nullable=False)  # securely hashed key material
     prefix = Column(String(8), nullable=False)  # prefix for UI identification (e.g. "of_live_...")
     is_active = Column(Boolean, default=True, nullable=False)
+    status = Column(String, default="active", nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    revoked_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    request_count = Column(Integer, default=0, nullable=False)
+    last_ip = Column(String, nullable=True)
+    last_user_agent = Column(String, nullable=True)
+    rate_limit_tier = Column(String, default="free", nullable=False)
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     __table_args__ = (
         Index("ix_public_api_keys_workspace_id", "workspace_id"),
         Index("ix_public_api_keys_prefix", "prefix"),  # useful for initial candidate lookup
+        Index("ix_public_api_keys_status", "status"),
     )
 
 
@@ -46,7 +54,7 @@ class PublicApiKeyScope(Base):
 
 class PublicApiKeyRotation(Base):
     """
-    Audit trail for API key rotations. Never stores secret material.
+    Legacy audit trail for API key rotations. (Preserved for backward compat)
     """
     __tablename__ = "public_api_key_rotations"
 
@@ -61,6 +69,29 @@ class PublicApiKeyRotation(Base):
     __table_args__ = (
         Index("ix_public_api_key_rotations_api_key_id", "api_key_id"),
         Index("ix_public_api_key_rotations_workspace_id", "workspace_id"),
+    )
+
+
+class PublicApiKeyAudit(Base):
+    """
+    First-class audit lineage for API Key operations.
+    Preserves old -> new key lineage during rotation.
+    """
+    __tablename__ = "public_api_key_audit"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workspace_id = Column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)
+    api_key_id = Column(UUID(as_uuid=True), ForeignKey("public_api_keys.id", ondelete="CASCADE"), nullable=False)
+    action = Column(String, nullable=False)  # "create", "rotate", "revoke"
+    old_api_key_id = Column(UUID(as_uuid=True), nullable=True)
+    new_api_key_id = Column(UUID(as_uuid=True), nullable=True)
+    actor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reason = Column(String, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    __table_args__ = (
+        Index("ix_public_api_key_audit_api_key_id", "api_key_id"),
+        Index("ix_public_api_key_audit_workspace_id", "workspace_id"),
     )
 
 

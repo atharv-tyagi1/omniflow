@@ -79,3 +79,40 @@ class RoleChecker:
 require_owner = RoleChecker(["owner"])
 require_admin = RoleChecker(["owner", "admin"])
 require_manager = RoleChecker(["owner", "admin", "manager"])
+
+
+def require_capability(capability_name: str):
+    """
+    Dependency that verifies the active workspace has access to a specific capability
+    based on its billing plan.
+    """
+    async def _check_capability(
+        credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+        db: AsyncSession = Depends(get_db),
+    ) -> UUID:
+        workspace_id = await get_current_workspace_id(credentials)
+        
+        # Load the workspace
+        from backend.app.repositories.workspace_repository import WorkspaceRepository
+        workspace = await WorkspaceRepository.get(db, workspace_id)
+        if not workspace:
+            raise AuthorizationError("Workspace not found")
+            
+        # Define capability plan mapping
+        capability_matrix = {
+            "apiKeys": ["pro", "enterprise", "scale"],
+            # add other capabilities here as needed
+        }
+        
+        allowed_plans = capability_matrix.get(capability_name, [])
+        
+        if workspace.plan not in allowed_plans and "all" not in allowed_plans:
+            # If the capability is not in the allowed plans for the workspace
+            # For this MVP, we might just allow it if not strictly defined, or block.
+            # Since we must enforce it, block if it's strictly defined and not matched.
+            if allowed_plans:
+                raise AuthorizationError(f"Capability '{capability_name}' requires plan upgrade.")
+                
+        return workspace_id
+        
+    return _check_capability

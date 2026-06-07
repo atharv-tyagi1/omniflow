@@ -25,7 +25,7 @@ async def check_rate_limit(key: str, limit: int, window_seconds: int) -> bool:
     """
     Returns True if allowed, False if rate limited.
     """
-    if settings.ENVIRONMENT == "production":
+    if getattr(settings, "ENVIRONMENT", "development") == "production":
         redis = get_redis_client()
         if redis:
             try:

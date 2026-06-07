@@ -14,7 +14,7 @@
   "businessRecommendations": false,
   "businessReports": false,
   "agentMetrics": false,
-  "apiKeys": false,
+  "apiKeys": true,
   "knowledgeDocuments": true,
   "knowledgeDatasets": false
 }

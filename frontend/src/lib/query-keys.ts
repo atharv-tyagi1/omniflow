@@ -24,7 +24,7 @@ export const queryKeys = {
     metrics: (workspaceId: string) => ["agents", "metrics", workspaceId] as const,
   },
   apiKeys: {
-    list: (workspaceId: string) => ["apiKeys", "list", workspaceId] as const,
+    list: (workspaceId: string, params?: any) => ["apiKeys", "list", workspaceId, params] as const,
   },
   knowledge: {
     documents: (workspaceId: string) => ["knowledge", "documents", workspaceId] as const,
