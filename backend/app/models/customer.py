@@ -39,6 +39,7 @@ class Customer(Base, TimestampMixin):
         Index("idx_customers_external", "external_id"),
         # Phase 13.5: Ensure unique external identities per workspace
         __import__("sqlalchemy").UniqueConstraint("workspace_id", "external_id", name="uq_workspace_customer_external_id"),
+        __import__("sqlalchemy").UniqueConstraint("workspace_id", "telegram_id", name="uq_workspace_customer_telegram_id"),
     )
 
     def __repr__(self) -> str:

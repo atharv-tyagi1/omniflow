@@ -5,13 +5,20 @@ import logging
 
 from backend.app.models.conversation import Conversation
 from backend.app.models.message import Message
+from dataclasses import dataclass
+
+@dataclass
+class ConversationMessageResult:
+    customer_message: Message
+    agent_message: Optional[Message] = None
+
 from backend.app.repositories.conversation_repository import ConversationRepository
 from backend.app.core.exceptions import NotFoundError
 from backend.app.core.agents.dispatcher import AgentDispatcher
 from backend.app.core.ai.intent_router import IntentResult
 
 from backend.app.services.router_service import RouterService
-from backend.app.schemas.router import RouteMessageRequest, RouteMessageResponse
+from backend.app.schemas.router import RouteMessageRequest, RouteMessageResponse, RouterDecision, AgentIntent
 from backend.app.schemas.agent import AgentResponse
 from backend.app.agents.factory import AgentFactory
 from backend.app.agents.registry import AgentRegistry
@@ -57,9 +64,9 @@ class ConversationService:
         workspace_id: UUID,
         sender_type: str,
         content: str,
-    ) -> Message:
+    ) -> ConversationMessageResult:
         # Verify conversation belongs to workspace
-        await ConversationService.get_conversation(db, conversation_id, workspace_id)
+        conversation = await ConversationService.get_conversation(db, conversation_id, workspace_id)
 
         # 1. Persist the incoming message
         user_msg = await ConversationRepository.add_message(
@@ -80,6 +87,8 @@ class ConversationService:
                 idempotency_key=f"msg_received:{user_msg.id}",
             )
 
+        agent_msg = None
+
         # 2. If message is from a customer, trigger the AI agent pipeline
         if sender_type == "customer":
             try:
@@ -91,20 +100,20 @@ class ConversationService:
                     agent_response = await ConversationService.handle_message(
                         db=db,
                         workspace_id=workspace_id,
-                        customer_id=customer_id,
+                        customer_id=conversation.customer_id,
                         conversation_id=conversation_id,
                         query=content,
                         source_message_id=str(user_msg.id)
                     )
                     
                     # Persist the AI agent's reply
-                    await ConversationRepository.add_message(
+                    agent_msg = await ConversationRepository.add_message(
                         db=db,
                         conversation_id=conversation_id,
                         sender_type=agent_response.agent_name or agent_response.agent_type,
                         content=agent_response.content,
                     )
-                    return user_msg
+                    return ConversationMessageResult(customer_message=user_msg, agent_message=agent_msg)
             except Exception as e:
                 logger.error(
                     "Agent pipeline v2 failed for conversation %s",
@@ -169,7 +178,7 @@ class ConversationService:
                     logger.info(f"Handoff logged: {previous_agent} -> {new_agent}")
 
                 # Persist the AI agent's reply using its specific agent type
-                await ConversationRepository.add_message(
+                agent_msg = await ConversationRepository.add_message(
                     db=db,
                     conversation_id=conversation_id,
                     sender_type=new_agent,
@@ -187,7 +196,7 @@ class ConversationService:
                 )
                 # Failure in the AI pipeline should never break the user's message persistence
 
-        return user_msg
+        return ConversationMessageResult(customer_message=user_msg, agent_message=agent_msg)
 
     @staticmethod
     async def classify_message(
@@ -246,6 +255,16 @@ class ConversationService:
             conversation=conversation,
             history=[],
         )
+
+        if decision_response.decision == RouterDecision.CLARIFY or decision_response.primary_intent == AgentIntent.UNKNOWN:
+            return AgentResponse(
+                content="I'm not quite sure how to help with that. Could you please clarify if you need sales, support, or customer care?",
+                confidence=1.0,
+                agent_name="system",
+                handoff_recommended=True,
+                requires_human=True,
+                sentiment="neutral"
+            )
 
         primary_intent = decision_response.primary_intent.value if decision_response.primary_intent else "unknown"
 

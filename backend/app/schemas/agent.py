@@ -25,13 +25,73 @@ class AgentContext(BaseModel):
     router_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class IntentMetadata(BaseModel):
+    primary_intent: Optional[str] = None
+    secondary_intent: Optional[str] = None
+    confidence: Optional[float] = None
+
+    def __getitem__(self, item):
+        return getattr(self, item, None)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __contains__(self, item):
+        return hasattr(self, item)
+
+    def get(self, item, default=None):
+        return getattr(self, item, default)
+
+
+class AgentMetadata(BaseModel):
+    issue_type: Optional[str] = None
+    resolution_status: Optional[str] = None
+    troubleshooting_steps: Optional[list[str]] = None
+    sources: Optional[list[str]] = None
+    complaint_type: Optional[str] = None
+    refund_requested: Optional[bool] = None
+    resolution_timeline: Optional[str] = None
+    lead_score: Optional[int] = None
+    next_best_action: Optional[str] = None
+    intent: Optional[IntentMetadata] = None
+
+    def __getitem__(self, item):
+        val = getattr(self, item, None)
+        if isinstance(val, BaseModel):
+            return val.model_dump()
+        return val
+
+    def __setitem__(self, key, value):
+        if key == "intent" and isinstance(value, dict):
+            value = IntentMetadata(**value)
+        setattr(self, key, value)
+
+    def __contains__(self, item):
+        return hasattr(self, item)
+
+    def get(self, item, default=None):
+        val = getattr(self, item, default)
+        if isinstance(val, BaseModel):
+            return val.model_dump()
+        return val
+
+    def keys(self):
+        return self.model_fields.keys()
+
+    def values(self):
+        return [getattr(self, k) for k in self.keys()]
+
+    def items(self):
+        return [(k, getattr(self, k)) for k in self.keys()]
+
+
 class AgentResponse(BaseModel):
     """Standardized response schema for all agent executions."""
     content: str = Field(description="The actual response text to the user.")
     confidence: float = Field(description="Confidence score between 0.0 and 1.0.")
     sources: Optional[list[str]] = Field(default=None, description="List of knowledge base source IDs or URLs used.")
     agent_name: str = Field(description="The name of the agent that generated this response.")
-    metadata: Optional[dict[str, Any]] = Field(default=None, description="Optional metadata dictionary.")
+    metadata: Optional[AgentMetadata] = Field(default=None, description="Optional metadata dictionary.")
     handoff_recommended: bool = Field(default=False, description="True if the agent believes another agent should take over.")
     next_agent: Optional[str] = Field(default=None, description="The suggested agent to hand off to, if applicable.")
     sentiment: str = Field(default="neutral", description="Detected sentiment of the user interaction.")

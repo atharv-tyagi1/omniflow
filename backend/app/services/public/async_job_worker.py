@@ -67,6 +67,9 @@ class PublicAsyncJobWorker:
         
         result = await db.execute(stmt)
         jobs_to_process = result.scalars().all()
+        print("JOBS TO PROCESS COUNT:", len(jobs_to_process))
+        for j in jobs_to_process:
+            print(f"JOB: id={j.id}, type={j.job_type}, status={j.status}")
         
         if not jobs_to_process:
             return
@@ -81,6 +84,7 @@ class PublicAsyncJobWorker:
         # Process claimed jobs
         for job in jobs_to_process:
             tracker = LatencyTracker()
+            job_id = job.id
             try:
                 if job.job_type == "chat_message":
                     payload = job.result_payload or {}
@@ -103,7 +107,43 @@ class PublicAsyncJobWorker:
                     log_public_telemetry(
                         "public_async_job_completed",
                         workspace_id=str(job.workspace_id),
-                        details={"job_id": str(job.id), "job_type": job.job_type, "attempts": job.attempts},
+                        details={"job_id": str(job_id), "job_type": job.job_type, "attempts": job.attempts},
+                        latency_ms=tracker.get_latency_ms()
+                    )
+                elif job.job_type == "telegram_update":
+                    payload = job.result_payload or {}
+                    from backend.app.services.telegram_service import TelegramService
+                    
+                    await TelegramService.process_update(db=db, update=payload)
+                    
+                    job.status = "completed"
+                    job.result_payload = {"status": "success"}
+                    job.last_error = None
+                    
+                    log_public_telemetry(
+                        "public_async_job_completed",
+                        workspace_id=str(job.workspace_id),
+                        details={"job_id": str(job_id), "job_type": job.job_type, "attempts": job.attempts},
+                        latency_ms=tracker.get_latency_ms()
+                    )
+                elif job.job_type == "voice_message":
+                    payload = job.result_payload or {}
+                    from backend.app.services.public.voice_service import PublicVoiceService
+                    
+                    voice_resp = await PublicVoiceService.process_async_voice_job(
+                        db=db,
+                        workspace_id=job.workspace_id,
+                        payload=payload
+                    )
+                    
+                    job.status = "completed"
+                    job.result_payload = voice_resp
+                    job.last_error = None
+                    
+                    log_public_telemetry(
+                        "public_async_job_completed",
+                        workspace_id=str(job.workspace_id),
+                        details={"job_id": str(job_id), "job_type": job.job_type, "attempts": job.attempts},
                         latency_ms=tracker.get_latency_ms()
                     )
                 else:
@@ -112,10 +152,13 @@ class PublicAsyncJobWorker:
                 await db.commit()
                 
             except Exception as e:
+                print("ASYNC JOB WORKER EXCEPTION:", str(e))
+                import traceback
+                traceback.print_exc()
                 await db.rollback()
                 
                 # Re-fetch to update status
-                result = await db.execute(select(PublicAsyncJob).where(PublicAsyncJob.id == job.id))
+                result = await db.execute(select(PublicAsyncJob).where(PublicAsyncJob.id == job_id))
                 fresh_job = result.scalar_one()
                 
                 error_msg = str(e)

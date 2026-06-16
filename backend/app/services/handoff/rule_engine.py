@@ -34,10 +34,7 @@ class HandoffRuleEngine:
                 pass
 
         # 2. Parse Intent safely
-        try:
-            intent = IntentType(primary_intent)
-        except ValueError:
-            intent = IntentType.UNKNOWN
+        intent = IntentType.from_agent_intent(primary_intent)
 
         target_agent = active_agent
         reason = None

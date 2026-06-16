@@ -36,13 +36,14 @@ class ConversationController:
         sender_type: str,
         content: str,
     ) -> Message:
-        return await ConversationService.add_message(
+        result = await ConversationService.add_message(
             db=db,
             conversation_id=conversation_id,
             workspace_id=workspace_id,
             sender_type=sender_type,
             content=content,
         )
+        return result.customer_message
 
     @staticmethod
     async def list_messages(

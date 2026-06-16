@@ -160,6 +160,16 @@ class PublicApiService:
             reason=reason
         )
         db.add(audit_record)
+
+        # Legacy audit trail (needed for test compliance)
+        rotation_record = PublicApiKeyRotation(
+            workspace_id=workspace_id,
+            api_key_id=old_api_key_record.id,
+            old_key_prefix=old_api_key_record.prefix,
+            new_key_prefix=new_prefix,
+            rotated_by=rotated_by_user_id
+        )
+        db.add(rotation_record)
         
         await PublicApiService.invalidate_api_key_cache(old_api_key_record.prefix)
         await db.commit()

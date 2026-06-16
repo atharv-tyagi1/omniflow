@@ -8,6 +8,7 @@ from backend.app.models.user import User
 @pytest.fixture
 async def api_key_setup(db: AsyncSession, auth_a, async_client: AsyncClient):
     from backend.app.services.public.public_api_service import PublicApiService
+    from backend.app.models.workspace import Workspace
     
     # Get user
     stmt = select(User).where(User.email == "owner_a@omniflow.ai")
@@ -16,6 +17,13 @@ async def api_key_setup(db: AsyncSession, auth_a, async_client: AsyncClient):
     
     import uuid
     workspace_id = uuid.UUID(auth_a.workspace_id)
+
+    # Promote workspace to pro plan
+    workspace = await db.get(Workspace, workspace_id)
+    if workspace:
+        workspace.plan = "pro"
+        db.add(workspace)
+        await db.commit()
     
     # Create initial API key
     plain_key = await PublicApiService.create_api_key(

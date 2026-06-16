@@ -1,6 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional
+from backend.app.schemas.agent import AgentMetadata
 
 
 class SupportIssueType(str, Enum):
@@ -30,7 +31,7 @@ class SupportAgentOutput(BaseModel):
     confidence: float = Field(..., description="Confidence score from 0.0 to 1.0 regarding the accuracy of the proposed solution.")
     sources: list[str] = Field(default_factory=list, description="List of knowledge base documentation or RAG sources used to generate the reply.")
     agent_name: str = Field(..., description="The name of the agent generating the response.")
-    metadata: dict = Field(default_factory=dict, description="Additional context or metadata.")
+    metadata: AgentMetadata = Field(default_factory=AgentMetadata, description="Additional context or metadata.")
     handoff_recommended: bool = Field(default=False, description="Set to true if handoff to another agent is recommended.")
     next_agent: Optional[str] = Field(default=None, description="The name of the agent to hand off to if required.")
     requires_human: bool = Field(default=False, description="Set to true if escalation to a human operator is required (e.g. unknown bugs, backend intervention needed).")

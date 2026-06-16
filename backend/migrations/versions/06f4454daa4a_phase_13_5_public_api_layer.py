@@ -17,14 +17,16 @@ depends_on = None
 
 def upgrade() -> None:
     # 1. Add external_id to customers
-    op.add_column('customers', sa.Column('external_id', sa.String(length=255), nullable=True))
+    with op.batch_alter_table('customers', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('external_id', sa.String(length=255), nullable=True))
+        batch_op.create_unique_constraint('uq_workspace_customer_external_id', ['workspace_id', 'external_id'])
     op.create_index('idx_customers_external', 'customers', ['external_id'], unique=False)
-    op.create_unique_constraint('uq_workspace_customer_external_id', 'customers', ['workspace_id', 'external_id'])
 
     # 2. Add external_id to conversations
-    op.add_column('conversations', sa.Column('external_id', sa.String(length=255), nullable=True))
+    with op.batch_alter_table('conversations', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('external_id', sa.String(length=255), nullable=True))
+        batch_op.create_unique_constraint('uq_workspace_conversation_external_id', ['workspace_id', 'external_id'])
     op.create_index('idx_conversations_external', 'conversations', ['external_id'], unique=False)
-    op.create_unique_constraint('uq_workspace_conversation_external_id', 'conversations', ['workspace_id', 'external_id'])
 
     # 3. Create public_api_keys
     op.create_table('public_api_keys',
@@ -130,9 +132,11 @@ def downgrade() -> None:
     op.drop_index('ix_public_api_keys_workspace_id', table_name='public_api_keys')
     op.drop_index('ix_public_api_keys_prefix', table_name='public_api_keys')
     op.drop_table('public_api_keys')
-    op.drop_constraint('uq_workspace_conversation_external_id', 'conversations', type_='unique')
     op.drop_index('idx_conversations_external', table_name='conversations')
-    op.drop_column('conversations', 'external_id')
-    op.drop_constraint('uq_workspace_customer_external_id', 'customers', type_='unique')
+    with op.batch_alter_table('conversations', schema=None) as batch_op:
+        batch_op.drop_constraint('uq_workspace_conversation_external_id', type_='unique')
+        batch_op.drop_column('external_id')
     op.drop_index('idx_customers_external', table_name='customers')
-    op.drop_column('customers', 'external_id')
+    with op.batch_alter_table('customers', schema=None) as batch_op:
+        batch_op.drop_constraint('uq_workspace_customer_external_id', type_='unique')
+        batch_op.drop_column('external_id')

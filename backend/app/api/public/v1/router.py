@@ -6,6 +6,7 @@ from backend.app.api.public.v1.customers import router as customers_router
 from backend.app.api.public.v1.analytics import router as analytics_router
 from backend.app.api.public.v1.intel import router as intel_router
 from backend.app.api.public.v1.webhooks import router as webhooks_router
+from backend.app.api.public.v1.voice import router as voice_router
 
 router = APIRouter()
 
@@ -15,3 +16,4 @@ router.include_router(customers_router)
 router.include_router(analytics_router)
 router.include_router(intel_router)
 router.include_router(webhooks_router)
+router.include_router(voice_router)

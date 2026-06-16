@@ -94,6 +94,8 @@ class HandoffExecutor:
                 # Update Conversation tracking safely
                 conversation.previous_agent = conversation.current_agent
                 conversation.current_agent = handoff_record.to_agent
+                if conversation.handoff_count is None:
+                    conversation.handoff_count = 0
                 conversation.handoff_count += 1
                 conversation.last_handoff_at = datetime.now(timezone.utc)
                 conversation.last_handoff_reason = handoff_record.reason

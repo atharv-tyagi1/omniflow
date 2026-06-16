@@ -23,20 +23,17 @@ async def get_analytics_overview(
 ):
     workspace_id = uuid.UUID(req.state.workspace_id)
     
-    # Simple aggregation from AnalyticsDailyRollup
-    stmt = select(
-        func.sum(AnalyticsDailyRollup.total_conversations).label("total_conversations"),
-        func.sum(AnalyticsDailyRollup.sales_qualified_leads).label("sales_qualified_leads"),
-        func.sum(AnalyticsDailyRollup.support_tickets_created).label("support_tickets_created")
-    ).where(AnalyticsDailyRollup.workspace_id == workspace_id)
-    
-    result = await db.execute(stmt)
-    row = result.fetchone()
+    from backend.app.services.analytics.service import AnalyticsService
+    from backend.app.schemas.analytics import AnalyticsMetricName
+
+    total_conv = await AnalyticsService._get_metric_total(db, workspace_id, AnalyticsMetricName.TOTAL_CONVERSATIONS)
+    leads_qual = await AnalyticsService._get_metric_total(db, workspace_id, AnalyticsMetricName.LEADS_QUALIFIED)
+    tickets_created = await AnalyticsService._get_metric_total(db, workspace_id, AnalyticsMetricName.TICKETS_CREATED)
     
     data = {
-        "total_conversations": row.total_conversations or 0,
-        "sales_qualified_leads": row.sales_qualified_leads or 0,
-        "support_tickets_created": row.support_tickets_created or 0
+        "total_conversations": total_conv,
+        "sales_qualified_leads": leads_qual,
+        "support_tickets_created": tickets_created
     }
     
     return PublicResponse(success=True, data=data)

@@ -9,9 +9,46 @@ from backend.app.models.public_api import PublicApiKey, PublicApiKeyScope, Publi
 from backend.app.services.public.public_api_service import PublicApiService
 
 @pytest.fixture
-async def public_api_key_data(db_session, workspace) -> dict:
+def db_session(db):
+    return db
+
+@pytest.fixture
+async def workspace(db):
+    from backend.app.models.workspace import Workspace
+    workspace = Workspace(id=uuid.uuid4(), name="Test Workspace", plan="pro")
+    db.add(workspace)
+    await db.commit()
+    await db.refresh(workspace)
+    return workspace
+
+@pytest.fixture
+async def user(db, workspace):
+    from backend.app.models.user import User
+    from backend.app.models.workspace_member import WorkspaceMember
+    user = User(
+        id=uuid.uuid4(),
+        email=f"user_{uuid.uuid4().hex[:8]}@example.com",
+        full_name="Test User",
+        password_hash="dummy_hash",
+        status="active"
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    member = WorkspaceMember(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        role="owner"
+    )
+    db.add(member)
+    await db.commit()
+    return user
+
+@pytest.fixture
+async def public_api_key_data(db_session, workspace, user) -> dict:
     plain_key = await PublicApiService.create_api_key(
-        db_session, workspace.id, "Test Key", ["chat", "analytics_read", "intel_read"]
+        db_session, workspace.id, user.id, "Test Key", ["chat", "analytics_read", "intel_read"]
     )
     return {"key": plain_key, "workspace_id": workspace.id}
 
@@ -47,7 +84,7 @@ async def test_rotation_audit_trail(db_session, public_api_key_data, user):
     )
 
     await db_session.refresh(key_record)
-    assert key_record.prefix != old_prefix
+    assert key_record.status == "revoked"
     
     # Check audit trail
     stmt = select(PublicApiKeyRotation).where(PublicApiKeyRotation.api_key_id == key_record.id)

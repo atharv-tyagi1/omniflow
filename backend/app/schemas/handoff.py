@@ -32,6 +32,21 @@ class IntentType(str, Enum):
     COMPLAIN = "complain"
     UNKNOWN = "unknown"
 
+    @classmethod
+    def from_agent_intent(cls, agent_intent: str) -> "IntentType":
+        mapping = {
+            "sales": cls.BUY_PRODUCT,
+            "support": cls.TROUBLESHOOT,
+            "customer_care": cls.COMPLAIN,
+        }
+        if agent_intent in mapping:
+            return mapping[agent_intent]
+        try:
+            return cls(agent_intent)
+        except ValueError:
+            return cls.UNKNOWN
+
+
 class ConversationHandoffStateV1(BaseModel):
     """
     Versioned state for bounded JSONB storage.

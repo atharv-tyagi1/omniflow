@@ -81,3 +81,28 @@ class CustomerRepository:
             await db.flush()
             return True
         return False
+
+    @staticmethod
+    async def get_or_create_by_telegram_id(
+        db: AsyncSession, telegram_id: str, name: str, workspace_id: UUID
+    ) -> Customer:
+        """
+        Safely and atomically upserts a Customer record matching (workspace_id, telegram_id).
+        Does not overwrite trusted data if already exists, just ensures the record is present.
+        """
+        stmt = insert(Customer).values(
+            workspace_id=workspace_id,
+            telegram_id=telegram_id,
+            name=name,
+            status="active"
+        )
+        stmt = stmt.on_conflict_do_update(
+            index_elements=['workspace_id', 'telegram_id'],
+            set_={
+                "name": stmt.excluded.name,
+            }
+        ).returning(Customer)
+
+        result = await db.execute(stmt)
+        await db.flush()
+        return result.scalar_one()

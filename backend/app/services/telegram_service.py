@@ -1,6 +1,6 @@
 import logging
 import httpx
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,11 +40,15 @@ class TelegramService:
             )
             return False
 
+        payload = {"url": settings.TELEGRAM_WEBHOOK_URL}
+        if settings.TELEGRAM_WEBHOOK_SECRET:
+            payload["secret_token"] = settings.TELEGRAM_WEBHOOK_SECRET
+
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
                     TelegramService._get_api_url("setWebhook"),
-                    json={"url": settings.TELEGRAM_WEBHOOK_URL},
+                    json=payload,
                 )
                 data = response.json()
                 if data.get("ok"):
@@ -144,8 +148,42 @@ class TelegramService:
         return customer, conversation
 
     @staticmethod
-    async def handle_text_message(db: AsyncSession, message: dict) -> None:
-        """Process an incoming text message from Telegram."""
+    async def process_update(db: AsyncSession, update: dict) -> None:
+        """Process an incoming update from Telegram (called by durable worker)."""
+        message = update.get("message")
+        if not message:
+            return
+
+        if "text" in message:
+            await TelegramService._handle_text_message_core(db, message)
+        elif "voice" in message:
+            await TelegramService._handle_voice_message_core(db, message)
+        else:
+            logger.info("Ignored unsupported message type from Telegram.")
+
+    @staticmethod
+    async def handle_text_message(message: dict, db: Optional[AsyncSession] = None) -> None:
+        """Process an incoming text message from Telegram (wraps in transaction if db is None)."""
+        if db is None:
+            from backend.app.core.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as local_db:
+                try:
+                    await TelegramService._handle_text_message_core(local_db, message)
+                    await local_db.commit()
+                except Exception as e:
+                    await local_db.rollback()
+                    logger.error(f"Error handling Telegram text message: {e}")
+                    chat_id = message.get("chat", {}).get("id")
+                    if chat_id:
+                        await TelegramService.send_message(
+                            chat_id, "I'm sorry, I'm having trouble processing that right now."
+                        )
+        else:
+            await TelegramService._handle_text_message_core(db, message)
+
+    @staticmethod
+    async def _handle_text_message_core(db: AsyncSession, message: dict) -> None:
+        """Core logic to process an incoming text message from Telegram."""
         chat_id = message.get("chat", {}).get("id")
         text = message.get("text", "")
         sender_first_name = message.get("from", {}).get("first_name", "Telegram User")
@@ -161,43 +199,48 @@ class TelegramService:
             )
             return
 
-        try:
-            customer, conversation = await TelegramService._resolve_conversation(
-                db=db,
-                telegram_id=telegram_id,
-                name=sender_first_name,
-                channel="telegram_chat",
-            )
+        customer, conversation = await TelegramService._resolve_conversation(
+            db=db,
+            telegram_id=telegram_id,
+            name=sender_first_name,
+            channel="telegram_chat",
+        )
 
-            # Pass user message to conversation pipeline
-            await ConversationService.add_message(
-                db=db,
-                conversation_id=conversation.id,
-                workspace_id=customer.workspace_id,
-                sender_type="customer",
-                content=text,
-            )
+        # Pass user message to conversation pipeline
+        result = await ConversationService.add_message(
+            db=db,
+            conversation_id=conversation.id,
+            workspace_id=customer.workspace_id,
+            sender_type="customer",
+            content=text,
+        )
 
-            # Fetch the latest message (agent's reply)
-            history = await ConversationService.list_messages(
-                db=db,
-                conversation_id=conversation.id,
-                workspace_id=customer.workspace_id,
-            )
-            if history:
-                latest = history[-1]
-                if latest.sender_type != "customer":
-                    await TelegramService.send_message(chat_id, latest.content)
-
-        except Exception as e:
-            logger.error(f"Error handling Telegram text message: {e}")
-            await TelegramService.send_message(
-                chat_id, "I'm sorry, I'm having trouble processing that right now."
-            )
+        if result.agent_message:
+            await TelegramService.send_message(chat_id, result.agent_message.content)
 
     @staticmethod
-    async def handle_voice_message(db: AsyncSession, message: dict) -> None:
-        """Process an incoming voice message from Telegram."""
+    async def handle_voice_message(message: dict, db: Optional[AsyncSession] = None) -> None:
+        """Process an incoming voice message from Telegram (wraps in transaction if db is None)."""
+        if db is None:
+            from backend.app.core.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as local_db:
+                try:
+                    await TelegramService._handle_voice_message_core(local_db, message)
+                    await local_db.commit()
+                except Exception as e:
+                    await local_db.rollback()
+                    logger.error(f"Error handling Telegram voice message: {e}")
+                    chat_id = message.get("chat", {}).get("id")
+                    if chat_id:
+                        await TelegramService.send_message(
+                            chat_id, "I'm sorry, I encountered an error processing your voice note."
+                        )
+        else:
+            await TelegramService._handle_voice_message_core(db, message)
+
+    @staticmethod
+    async def _handle_voice_message_core(db: AsyncSession, message: dict) -> None:
+        """Core logic to process an incoming voice message from Telegram."""
         chat_id = message.get("chat", {}).get("id")
         voice_info = message.get("voice", {})
         file_id = voice_info.get("file_id")
@@ -208,92 +251,80 @@ class TelegramService:
         if not chat_id or not file_id or not telegram_id:
             return
 
-        try:
-            # 1. Get file path from Telegram
-            async with httpx.AsyncClient() as client:
-                file_info_resp = await client.get(
-                    TelegramService._get_api_url("getFile"), params={"file_id": file_id}
-                )
-                file_info = file_info_resp.json()
-                if not file_info.get("ok"):
-                    logger.error("Failed to get voice file path from Telegram")
-                    return
-
-                file_path = file_info["result"]["file_path"]
-                file_url = TelegramService._get_file_url(file_path)
-
-                # Download the actual audio bytes
-                audio_resp = await client.get(file_url)
-                audio_data = audio_resp.content
-
-            # 2. Use Gemini to transcribe
-            # We use flash-2.0 to transcribe audio. We pass it the raw bytes.
-            from google.genai import types
-
-            transcript = "Could not transcribe audio."
-            try:
-                # Assuming GeminiClient exposes the raw client or we instantiate directly
-                import os
-                from google import genai
-
-                api_key = os.environ.get("GEMINI_API_KEY")
-                genai_client = genai.Client(api_key=api_key)
-
-                response = genai_client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[
-                        "Transcribe the following audio accurately. Reply with ONLY the transcription.",
-                        types.Part.from_bytes(data=audio_data, mime_type="audio/ogg"),
-                    ],
-                )
-                transcript = response.text.strip()
-            except Exception as e:
-                logger.error(f"Gemini transcription failed: {e}")
-                await TelegramService.send_message(
-                    chat_id, "Sorry, I couldn't understand the voice note."
-                )
+        # 1. Get file path from Telegram
+        async with httpx.AsyncClient() as client:
+            file_info_resp = await client.get(
+                TelegramService._get_api_url("getFile"), params={"file_id": file_id}
+            )
+            file_info = file_info_resp.json()
+            if not file_info.get("ok"):
+                logger.error("Failed to get voice file path from Telegram")
                 return
 
-            # 3. Resolve customer/conversation
-            customer, conversation = await TelegramService._resolve_conversation(
-                db=db,
-                telegram_id=telegram_id,
-                name=sender_first_name,
-                channel="telegram_voice",
-            )
+            file_path = file_info["result"]["file_path"]
+            file_url = TelegramService._get_file_url(file_path)
 
-            # 4. Save VoiceInteraction record
-            voice_record = VoiceInteraction(
-                conversation_id=conversation.id,
-                audio_url=file_url,
-                transcript=transcript,
-                duration_seconds=duration,
-            )
-            db.add(voice_record)
-            await db.flush()
+            # Download the actual audio bytes
+            audio_resp = await client.get(file_url)
+            audio_data = audio_resp.content
 
-            # 5. Process through agent pipeline
-            await ConversationService.add_message(
-                db=db,
-                conversation_id=conversation.id,
-                workspace_id=customer.workspace_id,
-                sender_type="customer",
-                content=transcript,
-            )
+        # 2. Use Gemini to transcribe
+        from google.genai import types
 
-            # 6. Fetch agent reply and send back
-            history = await ConversationService.list_messages(
-                db=db,
-                conversation_id=conversation.id,
-                workspace_id=customer.workspace_id,
-            )
-            if history:
-                latest = history[-1]
-                if latest.sender_type != "customer":
-                    await TelegramService.send_voice_message(chat_id, latest.content)
+        transcript = "Could not transcribe audio."
+        try:
+            import os
+            from google import genai
 
+            api_key = os.environ.get("GEMINI_API_KEY")
+            genai_client = genai.Client(api_key=api_key)
+
+            response = genai_client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=[
+                    "Transcribe the following audio accurately. Reply with ONLY the transcription.",
+                    types.Part.from_bytes(data=audio_data, mime_type="audio/ogg"),
+                ],
+            )
+            transcript = response.text.strip()
         except Exception as e:
-            logger.error(f"Error handling Telegram voice message: {e}")
+            logger.error(f"Gemini transcription failed: {e}")
             await TelegramService.send_message(
-                chat_id, "I'm sorry, I encountered an error processing your voice note."
+                chat_id, "Sorry, I couldn't understand the voice note."
             )
+            return
+
+        # 3. Resolve customer/conversation
+        customer, conversation = await TelegramService._resolve_conversation(
+            db=db,
+            telegram_id=telegram_id,
+            name=sender_first_name,
+            channel="telegram_voice",
+        )
+
+        # 4. Save VoiceInteraction record
+        voice_record = VoiceInteraction(
+            workspace_id=customer.workspace_id,
+            customer_id=customer.id,
+            conversation_id=conversation.id,
+            idempotency_key=f"tg_voice_{file_id}",
+            channel="telegram_voice",
+            input_audio_ref=file_url,
+            transcript_text=transcript,
+            status="completed"
+        )
+        db.add(voice_record)
+        await db.flush()
+
+        # 5. Process through agent pipeline
+        result = await ConversationService.add_message(
+            db=db,
+            conversation_id=conversation.id,
+            workspace_id=customer.workspace_id,
+            sender_type="customer",
+            content=transcript,
+        )
+
+        # 6. Fetch agent reply and send back
+        if result.agent_message:
+            await TelegramService.send_voice_message(chat_id, result.agent_message.content)

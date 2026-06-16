@@ -4,6 +4,7 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 from datetime import datetime
+from backend.app.schemas.agent import AgentMetadata
 
 class CustomerCareStage(str, Enum):
     ACKNOWLEDGED = "acknowledged"
@@ -46,7 +47,7 @@ class CustomerCareAgentOutput(BaseModel):
     confidence: float = Field(description="Confidence score between 0.0 and 1.0.")
     sources: Optional[List[str]] = Field(default=None, description="RAG source references if used.")
     agent_name: str = Field(description="Name of the agent handling the request.")
-    metadata: Optional[dict] = Field(default=None, description="Any additional tracking metadata.")
+    metadata: Optional[AgentMetadata] = Field(default=None, description="Any additional tracking metadata.")
     
     requires_human: bool = Field(default=False, description="True if manual intervention, legal/chargeback handling, or unapproved compensation is needed.")
     handoff_recommended: bool = Field(default=False, description="True if the agent should hand off to another agent or human.")

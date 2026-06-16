@@ -47,7 +47,8 @@ class PublicChatService:
                 await db.commit()
 
         # Route message
-        await ConversationService.add_message(
+        # Route message
+        result = await ConversationService.add_message(
             db=db,
             conversation_id=conversation.id,
             workspace_id=workspace_id,
@@ -55,14 +56,12 @@ class PublicChatService:
             content=message
         )
 
-        history = await ConversationService.list_messages(db=db, conversation_id=conversation.id, workspace_id=workspace_id)
-        if history:
-            latest = history[-1]
+        if result.agent_message:
             return {
                 "conversation_id": str(conversation.id),
-                "message_id": str(latest.id),
-                "content": latest.content,
-                "agent_name": latest.sender_type if latest.sender_type != "customer" else "Agent"
+                "message_id": str(result.agent_message.id),
+                "content": result.agent_message.content,
+                "agent_name": result.agent_message.sender_type if result.agent_message.sender_type != "customer" else "Agent"
             }
             
         raise Exception("No response generated")
