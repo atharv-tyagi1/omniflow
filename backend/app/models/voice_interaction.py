@@ -37,13 +37,19 @@ class VoiceInteraction(Base):
     input_audio_sha256 = Column(String(64), nullable=True)
     input_audio_mime_type = Column(String(100), nullable=True)
     input_audio_size_bytes = Column(Integer, nullable=True)
+    # DEPRECATED: Do not use in production. Use input_audio_ref.
     input_audio_bytes = Column(LargeBinary, nullable=True)
     
     transcript_text = Column(Text, nullable=True)
     
     reply_text = Column(Text, nullable=True)
     reply_audio_ref = Column(String(1024), nullable=True)
+    # DEPRECATED: Do not use in production. Use reply_audio_ref.
     reply_audio_bytes = Column(LargeBinary, nullable=True)
+    
+    artifact_created_at = Column(DateTime(timezone=True), nullable=True)
+    artifact_expires_at = Column(DateTime(timezone=True), nullable=True)
+    artifact_deleted_at = Column(DateTime(timezone=True), nullable=True)
     
     status = Column(String(50), nullable=False, default="processing")
     error_code = Column(String(100), nullable=True)

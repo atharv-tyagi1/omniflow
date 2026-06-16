@@ -109,3 +109,46 @@ async def test_voice_endpoint_missing_headers(async_client: AsyncClient, public_
     )
     
     assert response.status_code == 422
+
+@pytest.mark.asyncio
+async def test_voice_endpoint_idempotency(async_client: AsyncClient, public_api_key_data: dict, db: AsyncSession):
+    idempotency_key = str(uuid.uuid4())
+    
+    # Send first request (async mode for speed, avoiding real Gemini/GTTS)
+    response1 = await async_client.post(
+        "/api/public/v1/voice",
+        headers={
+            "X-Api-Key": public_api_key_data["key"],
+            "Idempotency-Key": idempotency_key
+        },
+        data={
+            "external_customer_id": "cust_123",
+            "customer_name": "John Doe",
+            "async_mode": "true"
+        },
+        files={
+            "audio": ("test.wav", b"dummy_audio", "audio/wav")
+        }
+    )
+    
+    assert response1.status_code == 202
+    
+    # Send second request with same idempotency key
+    response2 = await async_client.post(
+        "/api/public/v1/voice",
+        headers={
+            "X-Api-Key": public_api_key_data["key"],
+            "Idempotency-Key": idempotency_key
+        },
+        data={
+            "external_customer_id": "cust_123",
+            "customer_name": "John Doe",
+            "async_mode": "true"
+        },
+        files={
+            "audio": ("test.wav", b"dummy_audio", "audio/wav")
+        }
+    )
+    
+    # It should not fail with 409, it should either return 200 or 202 depending on the router implementation
+    assert response2.status_code in (200, 202)

@@ -3,30 +3,35 @@ import tempfile
 from abc import ABC, abstractmethod
 from typing import Tuple
 
+from backend.app.services.public.voice_storage import VoiceArtifactStorage
+
 class BaseTranscriptionProvider(ABC):
     @abstractmethod
-    async def transcribe(self, audio_bytes: bytes, mime_type: str) -> str:
+    async def transcribe_from_ref(self, storage: VoiceArtifactStorage, audio_ref: str, mime_type: str) -> str:
         """
-        Transcribe audio bytes to text.
+        Transcribe audio from a durable artifact reference.
         """
         pass
 
 class BaseTTSProvider(ABC):
     @abstractmethod
-    async def synthesize(self, text: str) -> bytes:
+    async def synthesize_to_ref(self, storage: VoiceArtifactStorage, text: str) -> str:
         """
-        Synthesize text to audio bytes.
+        Synthesize text and store as a durable artifact reference.
         """
         pass
 
 class GeminiTranscriptionProvider(BaseTranscriptionProvider):
-    async def transcribe(self, audio_bytes: bytes, mime_type: str) -> str:
+    async def transcribe_from_ref(self, storage: VoiceArtifactStorage, audio_ref: str, mime_type: str) -> str:
         import google.genai as genai
         from google.genai import types
 
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY is not configured.")
+
+        # Read the file via storage abstraction
+        audio_bytes = await storage.read_audio(audio_ref)
 
         client = genai.Client(api_key=api_key)
 
@@ -40,7 +45,7 @@ class GeminiTranscriptionProvider(BaseTranscriptionProvider):
         return response.text.strip()
 
 class GTTSProvider(BaseTTSProvider):
-    async def synthesize(self, text: str) -> bytes:
+    async def synthesize_to_ref(self, storage: VoiceArtifactStorage, text: str) -> str:
         from gtts import gTTS
         
         tts = gTTS(text=text, lang="en")
@@ -53,7 +58,7 @@ class GTTSProvider(BaseTTSProvider):
             with open(path, "rb") as f:
                 audio_bytes = f.read()
                 
-            return audio_bytes
+            return await storage.save_audio(audio_bytes, prefix="tts")
         finally:
             if os.path.exists(path):
                 os.remove(path)

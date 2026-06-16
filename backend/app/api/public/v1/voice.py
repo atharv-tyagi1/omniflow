@@ -10,6 +10,7 @@ from backend.app.services.public.voice_service import PublicVoiceService
 from backend.app.services.public.voice_providers import GeminiTranscriptionProvider, GTTSProvider
 from backend.app.models.public_api import PublicAsyncJob
 from backend.app.models.voice_interaction import VoiceInteraction
+from backend.app.services.public.voice_storage import LocalVoiceStorage
 from backend.app.core.telemetry import LatencyTracker, log_public_telemetry
 import hashlib
 
@@ -44,12 +45,18 @@ async def submit_voice_message(
     # 2. File Validation
     if audio.content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported audio format")
-        
-    audio_bytes = await audio.read()
-    if len(audio_bytes) > MAX_FILE_SIZE:
+
+    storage_service = LocalVoiceStorage()
+    
+    # 3. Stream Upload & Enforce Limits
+    audio_ref, audio_hash, audio_size = await storage_service.stage_upload(audio)
+    
+    if audio_size > MAX_FILE_SIZE:
+        await storage_service.delete_artifact(audio_ref)
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
         
-    if not audio_bytes:
+    if audio_size == 0:
+        await storage_service.delete_artifact(audio_ref)
         raise HTTPException(status_code=400, detail="Empty file")
 
     transcription_provider = GeminiTranscriptionProvider()
@@ -57,17 +64,20 @@ async def submit_voice_message(
 
     if async_mode:
         # Create a pending VoiceInteraction so we don't put bytes in the job payload
-        audio_size = len(audio_bytes)
-        audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=30)
         
         voice_interaction = VoiceInteraction(
             workspace_id=workspace_id,
             idempotency_key=idempotency_key,
             channel="public_voice",
+            input_audio_ref=audio_ref,
             input_audio_sha256=audio_hash,
             input_audio_mime_type=audio.content_type,
             input_audio_size_bytes=audio_size,
-            input_audio_bytes=audio_bytes,
+            artifact_created_at=now,
+            artifact_expires_at=expires_at,
             status="pending"
         )
         db.add(voice_interaction)
@@ -75,14 +85,26 @@ async def submit_voice_message(
             await db.flush()
         except Exception as e:
             await db.rollback()
-            raise HTTPException(status_code=409, detail=f"Idempotency key {idempotency_key} already used.")
+            await storage_service.delete_artifact(audio_ref)
+            
+            # Idempotency hit: return existing
+            from sqlalchemy import select
+            stmt = select(VoiceInteraction).where(
+                VoiceInteraction.workspace_id == workspace_id,
+                VoiceInteraction.idempotency_key == idempotency_key
+            )
+            existing = (await db.execute(stmt)).scalar_one_or_none()
+            if existing:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(status_code=200, content={"status": "accepted", "duplicate": True, "voice_interaction_id": str(existing.id)})
+            
+            raise HTTPException(status_code=409, detail=f"Idempotency key {idempotency_key} already used but could not fetch existing record.")
             
         interaction_id = voice_interaction.id
         
         # Schedule the async job
         job = PublicAsyncJob(
             workspace_id=workspace_id,
-            idempotency_key=f"job_voice_{idempotency_key}",
             job_type="voice_message",
             result_payload={"voice_interaction_id": str(interaction_id)}
         )
@@ -106,8 +128,11 @@ async def submit_voice_message(
                 db=db,
                 workspace_id=workspace_id,
                 idempotency_key=idempotency_key,
-                audio_bytes=audio_bytes,
+                audio_ref=audio_ref,
+                audio_sha256=audio_hash,
+                audio_size=audio_size,
                 mime_type=audio.content_type,
+                storage_service=storage_service,
                 transcription_provider=transcription_provider,
                 tts_provider=tts_provider,
                 external_customer_id=external_customer_id,

@@ -9,6 +9,7 @@ from backend.app.repositories.customer_repository import CustomerRepository
 from backend.app.services.conversation_service import ConversationService
 from backend.app.models.voice_interaction import VoiceInteraction
 from backend.app.services.public.voice_providers import BaseTranscriptionProvider, BaseTTSProvider, GeminiTranscriptionProvider, GTTSProvider
+from backend.app.services.public.voice_storage import VoiceArtifactStorage
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,11 @@ class PublicVoiceService:
         db: AsyncSession,
         workspace_id: UUID,
         idempotency_key: str,
-        audio_bytes: bytes,
+        audio_ref: str,
+        audio_sha256: str,
+        audio_size: int,
         mime_type: str,
+        storage_service: VoiceArtifactStorage,
         transcription_provider: BaseTranscriptionProvider,
         tts_provider: BaseTTSProvider,
         external_customer_id: str,
@@ -55,8 +59,9 @@ class PublicVoiceService:
                 await db.commit()
 
         # 3 & 4. Validate voice request idempotency and Create VoiceInteraction
-        audio_size = len(audio_bytes)
-        audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=30)  # 30 day retention
 
         voice_interaction = VoiceInteraction(
             workspace_id=workspace_id,
@@ -64,10 +69,12 @@ class PublicVoiceService:
             conversation_id=conversation.id,
             idempotency_key=idempotency_key,
             channel="public_voice",
-            input_audio_sha256=audio_hash,
+            input_audio_ref=audio_ref,
+            input_audio_sha256=audio_sha256,
             input_audio_mime_type=mime_type,
             input_audio_size_bytes=audio_size,
-            input_audio_bytes=audio_bytes,
+            artifact_created_at=now,
+            artifact_expires_at=expires_at,
             status="processing"
         )
         db.add(voice_interaction)
@@ -75,11 +82,30 @@ class PublicVoiceService:
             await db.flush()
         except IntegrityError:
             await db.rollback()
+            # Idempotency hit: return existing
+            from sqlalchemy import select
+            stmt = select(VoiceInteraction).where(
+                VoiceInteraction.workspace_id == workspace_id,
+                VoiceInteraction.idempotency_key == idempotency_key
+            )
+            existing = (await db.execute(stmt)).scalar_one_or_none()
+            if existing:
+                return {
+                    "idempotency_key": existing.idempotency_key,
+                    "voice_interaction_id": str(existing.id),
+                    "conversation_id": str(existing.conversation_id) if existing.conversation_id else None,
+                    "customer_message_id": None, # Not fully mapped back to message id in interaction table, but returning what we can
+                    "agent_message_id": None,
+                    "transcript": existing.transcript_text,
+                    "reply_text": existing.reply_text,
+                    "status": existing.status,
+                    "has_audio_reply": existing.reply_audio_ref is not None
+                }
             raise ValueError(f"Idempotency key {idempotency_key} already used.")
 
         try:
             # 5. Transcribe audio
-            transcript = await transcription_provider.transcribe(audio_bytes, mime_type)
+            transcript = await transcription_provider.transcribe_from_ref(storage_service, audio_ref, mime_type)
             voice_interaction.transcript_text = transcript
             await db.flush()
 
@@ -100,8 +126,8 @@ class PublicVoiceService:
 
                 # 9. Run TTS generation
                 try:
-                    reply_audio_bytes = await tts_provider.synthesize(reply_text)
-                    voice_interaction.reply_audio_bytes = reply_audio_bytes
+                    reply_audio_ref = await tts_provider.synthesize_to_ref(storage_service, reply_text)
+                    voice_interaction.reply_audio_ref = reply_audio_ref
                     voice_interaction.status = "completed"
                 except Exception as tts_err:
                     logger.error(f"TTS generation failed: {tts_err}")
@@ -123,7 +149,7 @@ class PublicVoiceService:
                 "transcript": voice_interaction.transcript_text,
                 "reply_text": voice_interaction.reply_text,
                 "status": voice_interaction.status,
-                "has_audio_reply": voice_interaction.reply_audio_bytes is not None
+                "has_audio_reply": voice_interaction.reply_audio_ref is not None
             }
 
         except Exception as e:
@@ -161,14 +187,17 @@ class PublicVoiceService:
         transcription_provider = GeminiTranscriptionProvider()
         tts_provider = GTTSProvider()
 
+        from backend.app.services.public.voice_storage import LocalVoiceStorage
+        storage_service = LocalVoiceStorage()
+
         # The pipeline logic is slightly different here because the interaction is already created.
         # But we can extract the pipeline logic into a shared helper if needed, or implement the rest here.
         # Let's run the steps 5-10
-        audio_bytes = voice_interaction.input_audio_bytes
+        audio_ref = voice_interaction.input_audio_ref
         mime_type = voice_interaction.input_audio_mime_type
         
         try:
-            transcript = await transcription_provider.transcribe(audio_bytes, mime_type)
+            transcript = await transcription_provider.transcribe_from_ref(storage_service, audio_ref, mime_type)
             voice_interaction.transcript_text = transcript
             await db.flush()
 
@@ -186,8 +215,8 @@ class PublicVoiceService:
                 await db.flush()
 
                 try:
-                    reply_audio_bytes = await tts_provider.synthesize(reply_text)
-                    voice_interaction.reply_audio_bytes = reply_audio_bytes
+                    reply_audio_ref = await tts_provider.synthesize_to_ref(storage_service, reply_text)
+                    voice_interaction.reply_audio_ref = reply_audio_ref
                     voice_interaction.status = "completed"
                 except Exception as tts_err:
                     logger.error(f"TTS generation failed: {tts_err}")
