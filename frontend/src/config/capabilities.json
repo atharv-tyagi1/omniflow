@@ -16,5 +16,11 @@
   "agentMetrics": false,
   "apiKeys": true,
   "knowledgeDocuments": true,
-  "knowledgeDatasets": false
+  "knowledgeDatasets": false,
+  "conversations": true,
+  "customers": true,
+  "workflows": true,
+  "channels": true,
+  "voice": true,
+  "telegram": true
 }

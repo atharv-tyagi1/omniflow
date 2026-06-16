@@ -15,7 +15,11 @@ export function useApiKeys(workspaceId: string, params: { page?: number, limit?:
     queryKey: queryKeys.apiKeys.list(workspaceId, params),
     queryFn: async () => {
       const data = await fetchApi(`/api/v1/api-keys`, {
-        params: { ...params },
+        params: Object.fromEntries(
+          Object.entries(params)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => [k, String(v)])
+        ),
         requiredCapability: "apiKeys",
       })
       try {

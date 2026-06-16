@@ -9,7 +9,10 @@ import {
   BookOpen, 
   Settings, 
   Users, 
-  CreditCard 
+  CreditCard,
+  Workflow,
+  Radio,
+  UserRound
 } from "lucide-react"
 
 export type NavItem = {
@@ -46,13 +49,42 @@ export const navigationConfig: NavGroup[] = [
     ]
   },
   {
+    title: "Explorer",
+    items: [
+      {
+        title: "Conversations",
+        href: "/conversations",
+        icon: MessageSquare,
+        capability: "conversations",
+      },
+      {
+        title: "Customers",
+        href: "/customers",
+        icon: UserRound,
+        capability: "customers",
+      },
+      {
+        title: "Workflows",
+        href: "/workflows",
+        icon: Workflow,
+        capability: "workflows",
+      },
+      {
+        title: "Channels",
+        href: "/channels",
+        icon: Radio,
+        capability: "channels",
+      },
+    ]
+  },
+  {
     title: "Intelligence",
     items: [
       {
         title: "Business Analyst",
         href: "/business-analyst",
         icon: Lightbulb,
-        capability: "businessInsights"
+        capability: "businessQuestions",
       },
       {
         title: "Executive Reports",

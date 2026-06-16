@@ -2,72 +2,112 @@
 
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
-import { DashboardWidget } from "@/components/dashboard/DashboardWidget"
-import { Badge } from "@/components/ui/badge"
-import { PermissionGuard } from "@/components/layout/PermissionGuard"
-import { canViewIntel } from "@/lib/permissions"
+import { useIntelTopics, useIntelIntents, useIntelSentiment } from "@/services/intel/queries"
+import { DonutChart, HorizontalBarChart, MultiLineChart } from "@/components/charts/Charts"
+import { SkeletonChart, ErrorState, EmptyState, PageHeader, SectionCard } from "@/components/ui/dashboard-primitives"
+
+type RangeDays = 7 | 30 | 90
 
 export default function IntelligencePage() {
   const { workspace } = useAuth()
-  
-  const mockTopics = [
-    { name: "Pricing Inquiry", volume: 1450, trend: "+12%" },
-    { name: "Account Access", volume: 840, trend: "-5%" },
-    { name: "Feature Request: Export", volume: 620, trend: "+45%" },
-    { name: "Billing Dispute", volume: 310, trend: "+2%" },
-    { name: "API Rate Limits", volume: 180, trend: "+110%" },
-  ]
+  const workspaceId = workspace?.id || ""
+  const [days, setDays] = React.useState<RangeDays>(30)
+
+  const { data: topics, isLoading: topicsLoading, error: topicsError, refetch: refetchTopics } = useIntelTopics(workspaceId, days)
+  const { data: intents, isLoading: intentsLoading, error: intentsError, refetch: refetchIntents } = useIntelIntents(workspaceId, days)
+  const { data: sentiment, isLoading: sentimentLoading, error: sentimentError } = useIntelSentiment(workspaceId, days)
+
+  // Transform topics for chart
+  const topicsChartData = React.useMemo(() => {
+    if (!topics) return []
+    return topics.map((t: any) => ({ name: t.topic, count: t.count }))
+  }, [topics])
+
+  // Transform intents for pie chart
+  const intentsChartData = React.useMemo(() => {
+    if (!intents) return []
+    return intents.map((i: any) => ({ name: i.intent, value: i.count }))
+  }, [intents])
+
+  // Transform sentiment trend for multi-line chart
+  const sentimentChartData = React.useMemo(() => {
+    if (!sentiment) return []
+    return Object.entries(sentiment).map(([date, values]: [string, any]) => ({
+      date: date.slice(5),
+      positive: values.positive ?? 0,
+      negative: values.negative ?? 0,
+      neutral: values.neutral ?? 0,
+    }))
+  }, [sentiment])
+
+  const rangeOptions: RangeDays[] = [7, 30, 90]
 
   return (
-    <PermissionGuard checkPermission={canViewIntel} featureName="Conversation Intelligence">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Conversation Intel</h1>
-          <p className="text-[var(--color-text-muted)]">
-            Semantic topic extraction, sentiment analysis, and anomaly detection.
-          </p>
+    <div className="space-y-6">
+      <PageHeader title="Conversation Intelligence" subtitle="Intent, sentiment & topic analysis">
+        <div className="flex items-center gap-1 rounded-lg bg-white/5 p-1">
+          {rangeOptions.map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                days === d
+                  ? "bg-[var(--color-primary-start)] text-white"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+              }`}
+            >
+              {d}d
+            </button>
+          ))}
         </div>
+      </PageHeader>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <DashboardWidget title="Top Emerging Topics" description="By conversation volume over 7 days" className="col-span-2">
-            <div className="space-y-4">
-              {mockTopics.map((topic, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)]">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-primary-start)]/10 text-[var(--color-primary-start)] text-xs font-bold">
-                      #{i + 1}
-                    </div>
-                    <span className="font-medium text-sm text-[var(--color-text-primary)]">{topic.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-semibold">{topic.volume}</span>
-                    <Badge variant={topic.trend.startsWith("+") ? (parseInt(topic.trend) > 50 ? "destructive" : "success") : "secondary"}>
-                      {topic.trend}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </DashboardWidget>
+      {/* Intent + Topics Row */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard title="Intent Distribution" subtitle={`Past ${days} days`}>
+          {intentsLoading ? (
+            <SkeletonChart className="h-[260px]" />
+          ) : intentsError ? (
+            <ErrorState message="Failed to load intent data." onRetry={refetchIntents} />
+          ) : intentsChartData.length > 0 ? (
+            <DonutChart data={intentsChartData} nameKey="name" valueKey="value" />
+          ) : (
+            <EmptyState title="No intent data" description="Intent analysis will appear as conversations are analyzed." />
+          )}
+        </SectionCard>
 
-          <DashboardWidget title="Sentiment Overview" description="Aggregated customer sentiment">
-            <div className="flex flex-col items-center justify-center h-[300px] space-y-4">
-              <div className="text-5xl font-bold text-[var(--color-success)]">78%</div>
-              <p className="text-sm text-[var(--color-text-muted)]">Positive Sentiment</p>
-              <div className="w-full max-w-[200px] h-2 bg-[var(--color-surface-elevated)] rounded-full overflow-hidden flex">
-                <div className="h-full bg-[var(--color-success)] w-[78%]" />
-                <div className="h-full bg-[var(--color-warning)] w-[15%]" />
-                <div className="h-full bg-[var(--color-error)] w-[7%]" />
-              </div>
-              <div className="flex justify-between w-full max-w-[200px] text-xs text-[var(--color-text-muted)] mt-2">
-                <span>Pos</span>
-                <span>Neu</span>
-                <span>Neg</span>
-              </div>
-            </div>
-          </DashboardWidget>
-        </div>
+        <SectionCard title="Top Topics" subtitle={`Past ${days} days`}>
+          {topicsLoading ? (
+            <SkeletonChart className="h-[260px]" />
+          ) : topicsError ? (
+            <ErrorState message="Failed to load topics." onRetry={refetchTopics} />
+          ) : topicsChartData.length > 0 ? (
+            <HorizontalBarChart data={topicsChartData} nameKey="name" valueKey="count" />
+          ) : (
+            <EmptyState title="No topic data" description="Topics are detected from conversation content." />
+          )}
+        </SectionCard>
       </div>
-    </PermissionGuard>
+
+      {/* Sentiment Trend */}
+      <SectionCard title="Sentiment Trend" subtitle={`Past ${days} days — positive, negative, neutral`}>
+        {sentimentLoading ? (
+          <SkeletonChart className="h-[280px]" />
+        ) : sentimentError ? (
+          <ErrorState message="Failed to load sentiment data." />
+        ) : sentimentChartData.length > 0 ? (
+          <MultiLineChart
+            data={sentimentChartData}
+            lines={[
+              { key: "positive", label: "Positive", color: "#10b981" },
+              { key: "negative", label: "Negative", color: "#ef4444" },
+              { key: "neutral", label: "Neutral", color: "#6366f1" },
+            ]}
+          />
+        ) : (
+          <EmptyState title="No sentiment data" description="Sentiment trend data accumulates over time." />
+        )}
+      </SectionCard>
+    </div>
   )
 }

@@ -8,7 +8,7 @@ export function useAnalyticsOverview(workspaceId: string, period: string) {
   return useQuery({
     queryKey: queryKeys.analytics.overview(workspaceId, { period }),
     queryFn: async () => {
-      const data = await fetchApi(`/api/v1/analytics/workspaces/${workspaceId}/overview`, {
+      const data = await fetchApi(`/api/v1/analytics/overview`, {
         params: { period },
         requiredCapability: "analyticsOverview",
       })
@@ -31,8 +31,8 @@ export function useMetricTrend(workspaceId: string, metric: string, period: stri
   return useQuery({
     queryKey: queryKeys.analytics.trends(workspaceId, metric, { period }),
     queryFn: async () => {
-      const data = await fetchApi(`/api/v1/analytics/workspaces/${workspaceId}/trends/${metric}`, {
-        params: { period },
+      const data = await fetchApi(`/api/v1/analytics/trends`, {
+        params: { period, metric },
         requiredCapability: "analyticsTrends",
       })
       try {
