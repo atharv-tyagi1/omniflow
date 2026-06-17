@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useWorkflows } from "@/services/workflows/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, SectionCard } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
 import { Workflow, Play, CheckCircle, XCircle, RefreshCw, Clock } from "lucide-react"
 
 const statusConfig: Record<string, { variant: any; label: string }> = {
@@ -71,7 +71,7 @@ export default function WorkflowsPage() {
   }), [list])
 
   return (
-    <div className="space-y-6">
+    <PageShell variant="wide">
       <PageHeader title="Workflow Observability" subtitle="Monitor workflow execution health and history">
         <button onClick={() => refetch()} className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors">
           <RefreshCw className="h-3.5 w-3.5" />
@@ -114,6 +114,6 @@ export default function WorkflowsPage() {
           {list.map((wf: any) => <WorkflowCard key={wf.id} wf={wf} />)}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

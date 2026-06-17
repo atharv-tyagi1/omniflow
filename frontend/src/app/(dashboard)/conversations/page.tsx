@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useConversations } from "@/services/conversations/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, PageShell } from "@/components/ui/dashboard-primitives"
 import { Search, Filter, MessageSquare, Clock, ChevronRight } from "lucide-react"
 
 const CHANNEL_OPTIONS = ["all", "web", "telegram", "voice", "api"]
@@ -70,7 +70,7 @@ export default function ConversationsPage() {
   const conversations = data?.data ?? []
 
   return (
-    <div className="space-y-5">
+    <PageShell variant="wide">
       <PageHeader title="Conversation Explorer" subtitle="Search and filter all workspace conversations" />
 
       {/* Filters */}
@@ -122,6 +122,6 @@ export default function ConversationsPage() {
           </>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

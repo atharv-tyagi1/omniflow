@@ -4,7 +4,7 @@ import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useIntelTopics, useIntelIntents, useIntelSentiment } from "@/services/intel/queries"
 import { DonutChart, HorizontalBarChart, MultiLineChart } from "@/components/charts/Charts"
-import { SkeletonChart, ErrorState, EmptyState, PageHeader, SectionCard } from "@/components/ui/dashboard-primitives"
+import { SkeletonChart, ErrorState, EmptyState, PageHeader, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
 
 type RangeDays = 7 | 30 | 90
 
@@ -43,7 +43,7 @@ export default function IntelligencePage() {
   const rangeOptions: RangeDays[] = [7, 30, 90]
 
   return (
-    <div className="space-y-6">
+    <PageShell variant="wide">
       <PageHeader title="Conversation Intelligence" subtitle="Intent, sentiment & topic analysis">
         <div className="flex items-center gap-1 rounded-lg bg-white/5 p-1">
           {rangeOptions.map((d) => (
@@ -108,6 +108,6 @@ export default function IntelligencePage() {
           <EmptyState title="No sentiment data" description="Sentiment trend data accumulates over time." />
         )}
       </SectionCard>
-    </div>
+    </PageShell>
   )
 }

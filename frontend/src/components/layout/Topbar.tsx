@@ -12,7 +12,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick, className }: TopbarProps) {
-  const { user, workspace } = useAuth()
+  const { user, workspace, logout } = useAuth()
 
   return (
     <header className={cn("sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-[var(--color-border-strong)] bg-[var(--color-surface)]/80 px-4 backdrop-blur-md", className)}>
@@ -20,9 +20,9 @@ export function Topbar({ onMenuClick, className }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </Button>
       
-      <div className="flex flex-1 items-center gap-4">
-        <div className="hidden md:flex flex-col">
-          <span className="text-sm font-semibold leading-none">{workspace?.name || "Select Workspace"}</span>
+      <div className="flex flex-1 items-center gap-4 min-w-0">
+        <div className="hidden md:flex flex-col min-w-0">
+          <span className="text-sm font-semibold leading-none truncate">{workspace?.name || "Select Workspace"}</span>
           <span className="text-xs text-[var(--color-text-muted)] leading-none mt-1">Free Tier</span>
         </div>
 
@@ -42,8 +42,11 @@ export function Topbar({ onMenuClick, className }: TopbarProps) {
           <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-[var(--color-error)]"></span>
         </Button>
         <div className="h-8 w-8 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center border border-[var(--color-border-strong)] cursor-pointer">
-          <span className="text-xs font-semibold">{user?.name?.charAt(0) || "U"}</span>
+          <span className="text-xs font-semibold">{user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</span>
         </div>
+        <Button variant="ghost" size="sm" onClick={() => logout()} className="text-xs text-neutral-400 hover:text-white">
+          Logout
+        </Button>
       </div>
     </header>
   )

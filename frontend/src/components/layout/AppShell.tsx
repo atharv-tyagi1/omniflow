@@ -37,14 +37,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-[var(--color-background)]">
         <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto canvas-scroll p-4 md:p-8">
-          <div className="mx-auto max-w-7xl">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </div>
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden canvas-scroll relative">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

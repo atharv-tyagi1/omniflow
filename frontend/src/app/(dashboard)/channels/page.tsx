@@ -4,7 +4,7 @@ import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { fetchApi } from "@/lib/api-client"
 import { useQuery } from "@tanstack/react-query"
-import { PageHeader, SectionCard, Badge, ErrorState, SkeletonCard } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SectionCard, Badge, ErrorState, SkeletonCard, PageShell } from "@/components/ui/dashboard-primitives"
 import { Send, PhoneCall, RefreshCw, CheckCircle, Clock, AlertTriangle, Mic, Volume2, Activity } from "lucide-react"
 
 function useTelegramHealth(workspaceId: string) {
@@ -38,7 +38,7 @@ export default function ChannelsPage() {
   const tgStatus = telegramHealth?.webhook_configured ? "configured" : telegramHealth ? "not configured" : "unknown"
 
   return (
-    <div className="space-y-6">
+    <PageShell variant="wide">
       <PageHeader title="Channel Observability" subtitle="Telegram & Voice channel health and traffic">
         <button
           onClick={() => refetch()}
@@ -130,6 +130,6 @@ export default function ChannelsPage() {
           </div>
         </SectionCard>
       </div>
-    </div>
+    </PageShell>
   )
 }

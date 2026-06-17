@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useAnalystQuery, useAnalystLimits } from "@/services/analyst/queries"
-import { PageHeader, ErrorState, SectionCard } from "@/components/ui/dashboard-primitives"
+import { PageHeader, ErrorState, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
 import { hasCapability } from "@/lib/api-capabilities/registry"
 import { Send, Bot, User, AlertCircle, Loader2, Sparkles } from "lucide-react"
 
@@ -77,7 +77,7 @@ export default function BusinessAnalystPage() {
 
   if (!isEnabled) {
     return (
-      <div className="space-y-6">
+      <PageShell variant="standard">
         <PageHeader title="AI Business Analyst" subtitle="Natural language business intelligence" />
         <div className="premium-card p-10 flex flex-col items-center gap-4 text-center">
           <Sparkles className="h-10 w-10 text-violet-400" />
@@ -86,12 +86,12 @@ export default function BusinessAnalystPage() {
             The businessQuestions capability is currently disabled in the capability registry.
           </p>
         </div>
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
+    <PageShell variant="full-height">
       <PageHeader title="AI Business Analyst" subtitle="Ask questions about your business data in natural language">
         {limits && (
           <span className="text-xs text-[var(--color-text-muted)]">
@@ -189,6 +189,6 @@ export default function BusinessAnalystPage() {
           </button>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

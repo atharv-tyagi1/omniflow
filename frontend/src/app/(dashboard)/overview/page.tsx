@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 import { useAnalyticsOverview, useMetricTrend } from "@/services/analytics/queries"
 import { MetricCard } from "@/components/dashboard/MetricCard"
 import { TrendAreaChart, MultiLineChart } from "@/components/charts/Charts"
-import { SkeletonCard, SkeletonChart, ErrorState, EmptyState, PageHeader, SectionCard } from "@/components/ui/dashboard-primitives"
+import { SkeletonCard, SkeletonChart, ErrorState, EmptyState, PageHeader, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
 import {
   MessageSquare, Users, CheckCircle, TrendingUp, Star,
   PhoneCall, Send, AlertTriangle, Activity, RefreshCw
@@ -39,7 +39,7 @@ export default function OverviewPage() {
   }, [convTrend])
 
   return (
-    <div className="space-y-6">
+    <PageShell variant="wide">
       <PageHeader
         title="Executive Overview"
         subtitle="Real-time workspace performance metrics"
@@ -137,6 +137,6 @@ export default function OverviewPage() {
           </SectionCard>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

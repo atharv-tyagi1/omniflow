@@ -11,6 +11,7 @@ import {
 } from "@/components/api-management/ApiKeyModals"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { PageShell } from "@/components/ui/dashboard-primitives"
 
 export default function ApiManagementPage() {
   const isEnabled = hasCapability("apiKeys")
@@ -20,7 +21,7 @@ export default function ApiManagementPage() {
 
   if (!isEnabled) {
     return (
-      <div className="space-y-6">
+      <PageShell variant="standard">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">API Management</h1>
           <p className="text-[var(--color-text-muted)]">
@@ -34,12 +35,12 @@ export default function ApiManagementPage() {
           dependency="GET /api/public/v1/apikeys"
           status="Missing"
         />
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <PageShell variant="standard">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">API Management</h1>
@@ -72,7 +73,7 @@ export default function ApiManagementPage() {
         keyId={revokeKeyId} 
         onClose={() => setRevokeKeyId(null)} 
       />
-    </div>
+    </PageShell>
   )
 }
 

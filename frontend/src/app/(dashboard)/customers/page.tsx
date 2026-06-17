@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useCustomers } from "@/services/customers/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, PageShell } from "@/components/ui/dashboard-primitives"
 import { Search, Users, Mail, Phone, Calendar } from "lucide-react"
 
 function CustomerCard({ customer }: { customer: any }) {
@@ -66,7 +66,7 @@ export default function CustomersPage() {
   const list: any[] = Array.isArray(customers) ? customers : []
 
   return (
-    <div className="space-y-5">
+    <PageShell variant="wide">
       <PageHeader title="Customer Insights" subtitle="Browse and explore customer profiles">
         <Badge variant="neutral">{list.length} loaded</Badge>
       </PageHeader>
@@ -99,6 +99,6 @@ export default function CustomersPage() {
           {list.map((c: any) => <CustomerCard key={c.id} customer={c} />)}
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

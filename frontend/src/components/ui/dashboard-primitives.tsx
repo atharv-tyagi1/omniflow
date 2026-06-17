@@ -2,6 +2,9 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { PageShell } from "./page-shell"
+
+export { PageShell }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
