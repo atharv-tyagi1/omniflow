@@ -1,29 +1,31 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-primary-start: #6366f1;
-  --color-primary-end: #8b5cf6;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #0ea5e9;
+  /* Google Stitch Inspired Dark Mode Palette */
+  --color-primary-start: #8ab4f8; /* Google Blue 300 */
+  --color-primary-end: #4285f4;   /* Google Blue 500 */
+  --color-success: #81c995;       /* Green 300 */
+  --color-warning: #fde293;       /* Yellow 300 */
+  --color-error: #f28b82;         /* Red 300 */
+  --color-info: #8ab4f8;          /* Blue 300 */
 
-  --color-background: #020617; /* Slate 950 for deep dark mode */
-  --color-surface: #0f172a; /* Slate 900 for cards */
-  --color-surface-elevated: #1e293b; /* Slate 800 for elevated elements */
+  --color-background: #202124; /* Google Dark Background */
+  --color-surface: #292a2d; /* Google Dark Surface 1 */
+  --color-surface-elevated: #35363a; /* Google Dark Surface 2 */
   
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.15);
+  --color-border-subtle: #3c4043; /* Google Grey 800 */
+  --color-border-strong: #5f6368; /* Google Grey 700 */
 
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-text-primary: #e8eaed; /* Text Primary */
+  --color-text-secondary: #9aa0a6; /* Text Secondary */
+  --color-text-muted: #80868b; /* Text Hint */
 
-  --font-sans: "Inter", var(--font-inter), sans-serif;
+  --font-sans: "Inter", "Google Sans", "Roboto", var(--font-inter), sans-serif;
   
-  --radius-card: 16px;
-  --radius-btn: 8px;
-  --radius-input: 8px;
+  /* Material 3 Radii */
+  --radius-card: 12px;
+  --radius-btn: 20px;
+  --radius-input: 4px;
 }
 
 :root {

@@ -1,12 +1,16 @@
 "use client"
 
 import * as React from "react"
+import { api } from "@/lib/api"
+import { useRouter } from "next/navigation"
 
 export interface User {
   id: string
-  name: string
+  full_name: string
   email: string
   role: string
+  workspace_id: string
+  status: string
 }
 
 export interface Workspace {
@@ -19,50 +23,41 @@ export interface AuthContextType {
   workspace: Workspace | null
   isAuthenticated: boolean
   isLoading: boolean
+  checkSession: () => Promise<void>
+  logout: () => Promise<void>
 }
 
 export const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
-// MOCK CONSTANTS FOR DEVELOPMENT
-const MOCK_USER: User = {
-  id: "usr_mock123",
-  name: "Developer",
-  email: "dev@omniflow.com",
-  role: "admin"
-}
-
-// Ensure this matches the backend test DB UUID or typical test workspace
-const MOCK_WORKSPACE: Workspace = {
-  id: "00000000-0000-0000-0000-000000000000",
-  name: "OmniFlow Dev Workspace"
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<AuthContextType>({
+  const router = useRouter()
+  const [state, setState] = React.useState<{
+    user: User | null
+    workspace: Workspace | null
+    isAuthenticated: boolean
+    isLoading: boolean
+  }>({
     user: null,
     workspace: null,
     isAuthenticated: false,
     isLoading: true
   })
 
-  React.useEffect(() => {
-    // CRITICAL PRODUCTION GUARD
-    const isProd = process.env.NODE_ENV === "production"
-    const devAuthEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_ENABLED === "true"
-
-    if (isProd && devAuthEnabled) {
-      throw new Error("FATAL: DEV_AUTH_ENABLED=true is not permitted in production builds.")
-    }
-
-    if (devAuthEnabled || process.env.NODE_ENV === "development") {
-      setState({
-        user: MOCK_USER,
-        workspace: MOCK_WORKSPACE,
-        isAuthenticated: true,
-        isLoading: false
-      })
-    } else {
-      // Future: Real JWT verification flow
+  const checkSession = React.useCallback(async () => {
+    try {
+      // The backend returns { data: User } inside a success_response envelope
+      const response: any = await api.get('/api/v1/auth/me')
+      if (response && response.data) {
+        setState({
+          user: response.data,
+          workspace: response.data.workspace_id ? { id: response.data.workspace_id, name: "Workspace" } : null,
+          isAuthenticated: true,
+          isLoading: false
+        })
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (error) {
       setState({
         user: null,
         workspace: null,
@@ -72,8 +67,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const logout = React.useCallback(async () => {
+    try {
+      await api.post('/api/v1/auth/logout', {})
+    } catch (e) {
+      // Ignore errors on logout
+    } finally {
+      localStorage.removeItem("access_token")
+      setState({
+        user: null,
+        workspace: null,
+        isAuthenticated: false,
+        isLoading: false
+      })
+      router.push("/login")
+    }
+  }, [router])
+
+  React.useEffect(() => {
+    checkSession()
+  }, [checkSession])
+
   return (
-    <AuthContext.Provider value={state}>
+    <AuthContext.Provider value={{ ...state, checkSession, logout }}>
       {children}
     </AuthContext.Provider>
   )

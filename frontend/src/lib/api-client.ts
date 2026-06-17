@@ -39,7 +39,7 @@ export async function fetchApi<T>(endpoint: string, options: FetchOptions = {}):
   const headers = new Headers(init.headers)
   headers.set("Content-Type", "application/json")
   
-  const token = localStorage.getItem("auth_token")
+  const token = localStorage.getItem("access_token")
   if (token) {
     headers.set("Authorization", `Bearer ${token}`)
   }

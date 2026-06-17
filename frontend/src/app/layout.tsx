@@ -4,6 +4,7 @@ import "./globals.css"
 import { AuthProvider } from "@/context/AuthContext"
 import { ThemeProvider } from "@/context/ThemeProvider"
 import { QueryProvider } from "@/context/QueryProvider"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {children}
+              <Toaster />
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>
