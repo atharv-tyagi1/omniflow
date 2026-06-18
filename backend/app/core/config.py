@@ -1,8 +1,11 @@
 import os
+from pathlib import Path
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load root .env file explicitly
+root_env = Path(__file__).parent.parent.parent.parent / ".env"
+load_dotenv(root_env)
 
 
 class Settings(BaseModel):
@@ -15,7 +18,7 @@ class Settings(BaseModel):
         "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/omniflow"
     )
     SYNC_DATABASE_URL: str = os.getenv(
-        "SYNC_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/omniflow"
+        "SYNC_DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/omniflow"
     )
 
     # Supabase
@@ -29,6 +32,9 @@ class Settings(BaseModel):
 
     # Gemini AI
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "your-gemini-api-key")
+    
+    # OpenRouter AI
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "your-openrouter-api-key")
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
