@@ -4,7 +4,8 @@ import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useWorkflows } from "@/services/workflows/queries"
 import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
-import { Workflow, Play, CheckCircle, XCircle, RefreshCw, Clock } from "lucide-react"
+import { Workflow, Play, CheckCircle, XCircle, RefreshCw, Clock, Plus } from "lucide-react"
+import { fetchApi } from "@/lib/api-client"
 
 const statusConfig: Record<string, { variant: any; label: string }> = {
   active: { variant: "success", label: "Active" },
@@ -47,10 +48,10 @@ function WorkflowCard({ wf }: { wf: any }) {
         ))}
       </div>
 
-      {wf.updated_at && (
+      {wf.created_at && (
         <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] pt-1 border-t border-white/5">
           <Clock className="h-3 w-3" />
-          <span>Last updated {new Date(wf.updated_at).toLocaleString()}</span>
+          <span>Created {new Date(wf.created_at).toLocaleString()}</span>
         </div>
       )}
     </div>
@@ -70,17 +71,92 @@ export default function WorkflowsPage() {
     failed: list.filter((w) => w.status === "failed").length,
   }), [list])
 
+  const [isCreating, setIsCreating] = React.useState(false)
+  const [newWorkflowName, setNewWorkflowName] = React.useState("")
+  const [newWorkflowTrigger, setNewWorkflowTrigger] = React.useState("webhook")
+
+  const handleCreate = async () => {
+    if (!newWorkflowName.trim()) return
+    try {
+      await fetchApi(`/api/v1/workflows`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: newWorkflowName,
+          trigger_type: newWorkflowTrigger
+        })
+      })
+      setNewWorkflowName("")
+      setIsCreating(false)
+      refetch()
+    } catch (e) {
+      console.error("Failed to create workflow", e)
+    }
+  }
+
   return (
     <PageShell variant="wide">
-      <PageHeader title="Workflow Observability" subtitle="Monitor workflow execution health and history">
-        <button onClick={() => refetch()} className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </button>
-      </PageHeader>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Workflow Observability</h1>
+          <p className="text-[var(--color-text-muted)] mt-2 text-sm">Monitor workflow execution health and history</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+          <button 
+            onClick={() => setIsCreating(!isCreating)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[var(--color-primary-start)] text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-4 w-4" />
+            {isCreating ? "Cancel" : "New Workflow"}
+          </button>
+        </div>
+      </div>
+
+      {isCreating && (
+        <div className="mb-8 p-6 premium-card border border-violet-500/20 bg-violet-500/5">
+          <h3 className="text-lg font-semibold mb-4">Create Minimal Workflow</h3>
+          <p className="text-sm text-[var(--color-text-muted)] mb-4">
+            The backend schema currently supports defining a workflow by name and trigger type. Visual node orchestration is coming in the next engine update.
+          </p>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Workflow Name</label>
+              <input 
+                type="text" 
+                value={newWorkflowName}
+                onChange={(e) => setNewWorkflowName(e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
+                placeholder="e.g. Lead Qualification"
+              />
+            </div>
+            <div className="w-48">
+              <label className="block text-sm font-medium mb-1">Trigger Type</label>
+              <select 
+                value={newWorkflowTrigger}
+                onChange={(e) => setNewWorkflowTrigger(e.target.value)}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="webhook">Webhook</option>
+                <option value="schedule">Schedule</option>
+                <option value="event">Event-driven</option>
+              </select>
+            </div>
+            <button 
+              onClick={handleCreate}
+              disabled={!newWorkflowName.trim()}
+              className="px-6 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
+            >
+              Save Workflow
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary row */}
-      <div className="grid gap-4 grid-cols-3">
+      <div className="grid gap-4 grid-cols-3 mb-8">
         {[
           { label: "Total Workflows", value: stats.total, icon: <Workflow className="h-4 w-4" /> },
           { label: "Active", value: stats.active, icon: <CheckCircle className="h-4 w-4 text-emerald-400" /> },
@@ -106,7 +182,7 @@ export default function WorkflowsPage() {
       ) : list.length === 0 ? (
         <EmptyState
           title="No workflows"
-          description="Create automation workflows in the Workflow Builder."
+          description="Create your first automation workflow to get started."
           icon={<Workflow className="h-10 w-10" />}
         />
       ) : (

@@ -19,8 +19,9 @@ export function useWorkflows(workspaceId: string) {
     queryKey: ["workflows", "list", workspaceId],
     queryFn: async () => {
       const data = await fetchApi<any>(`/api/v1/workflows`)
+      if (data?.workflows && Array.isArray(data.workflows)) return data.workflows
       if (Array.isArray(data)) return data
-      if (data?.data) return data.data
+      if (data?.data?.workflows) return data.data.workflows
       return []
     },
     enabled: !!workspaceId,

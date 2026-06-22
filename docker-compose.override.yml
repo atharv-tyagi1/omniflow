@@ -1,23 +1,5 @@
-services:
-  db:
-    image: pgvector/pgvector:pg16
-    restart: always
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  backend:
-    depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/postgres
-      - SYNC_DATABASE_URL=postgresql://postgres:password@db:5432/postgres
-      - JWT_SECRET=super-secret-key-change-in-production
-
-volumes:
-  pgdata:
+# docker-compose.override.yml
+# This file previously defined an incomplete 'backend' service that caused
+# Docker Compose merge errors. That service definition has been removed.
+# The primary docker-compose.yml contains the full postgres service definition.
+services: {}

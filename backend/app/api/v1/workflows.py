@@ -41,8 +41,17 @@ async def list_workflows(
     workspace_id: UUID = Depends(get_current_workspace_id),
 ):
     workflows = await WorkflowController.get_all(db=db, workspace_id=workspace_id)
+    serialized = [
+        {
+            "id": w.id,
+            "name": w.name,
+            "trigger_type": w.trigger_type,
+            "status": w.status,
+            "created_at": w.created_at
+        } for w in workflows
+    ]
     return SuccessResponse(
-        data={"workflows": [w.id for w in workflows]}, message="Workflows retrieved"
+        data={"workflows": serialized}, message="Workflows retrieved"
     )
 
 
