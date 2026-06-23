@@ -58,6 +58,12 @@ class ConversationService:
         return await ConversationRepository.list_by_workspace(db, workspace_id)
 
     @staticmethod
+    async def get_active_by_customer(
+        db: AsyncSession, customer_id: UUID, channel: str
+    ) -> Optional[Conversation]:
+        return await ConversationRepository.get_active_by_customer(db, customer_id, channel)
+
+    @staticmethod
     async def add_message(
         db: AsyncSession,
         conversation_id: UUID,

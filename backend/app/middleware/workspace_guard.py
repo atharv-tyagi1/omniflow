@@ -14,11 +14,13 @@ security_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_current_workspace_id(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> UUID:
     """
-    Extract the active workspace_id from the JWT token.
-    The workspace context is embedded in the token during login/signup.
+    Extract the active workspace_id from the header and verify membership.
+    Fallback to the token's embedded workspace_id if header is missing.
     """
     if not credentials:
         raise AuthenticationError("Missing authorization header")
@@ -28,11 +30,31 @@ async def get_current_workspace_id(
     if not payload:
         raise AuthenticationError("Invalid or expired token")
 
-    workspace_id_str = payload.get("workspace_id")
-    if not workspace_id_str:
-        raise AuthorizationError("No workspace context found in token")
+    user_id = payload.get("sub")
+    
+    # Try header first
+    header_ws_id = request.headers.get("x-workspace-id")
+    token_ws_id = payload.get("workspace_id")
+    
+    target_ws_id_str = header_ws_id or token_ws_id
+    
+    if not target_ws_id_str:
+        raise AuthorizationError("No workspace context found")
+        
+    try:
+        target_ws_id = UUID(str(target_ws_id_str))
+    except ValueError:
+        raise AuthorizationError("Invalid workspace ID format")
+    
+    # Verify membership exists for the target workspace
+    from backend.app.repositories.workspace_member_repository import WorkspaceMemberRepository
+    membership = await WorkspaceMemberRepository.get_by_user_and_workspace(
+        db, UUID(user_id), target_ws_id
+    )
+    if not membership:
+        raise AuthorizationError("User is not a member of the requested workspace")
 
-    return UUID(workspace_id_str)
+    return target_ws_id
 
 
 class RoleChecker:
@@ -46,24 +68,17 @@ class RoleChecker:
 
     async def __call__(
         self,
+        request: Request,
         credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
         current_user: User = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
     ) -> User:
-        if not credentials:
-            raise AuthenticationError("Missing authorization header")
-
-        payload = decode_token(credentials.credentials)
-        if not payload:
-            raise AuthenticationError("Invalid or expired token")
-
-        workspace_id_str = payload.get("workspace_id")
-        if not workspace_id_str:
-            raise AuthorizationError("No workspace context found in token")
+        target_ws_id = await get_current_workspace_id(request, credentials, db)
 
         # Verify membership exists and get live role from DB
+        from backend.app.repositories.workspace_member_repository import WorkspaceMemberRepository
         membership = await WorkspaceMemberRepository.get_by_user_and_workspace(
-            db, current_user.id, UUID(workspace_id_str)
+            db, current_user.id, target_ws_id
         )
         if not membership:
             raise AuthorizationError("User is not a member of this workspace")
@@ -87,10 +102,11 @@ def require_capability(capability_name: str):
     based on its billing plan.
     """
     async def _check_capability(
+        request: Request,
         credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
         db: AsyncSession = Depends(get_db),
     ) -> UUID:
-        workspace_id = await get_current_workspace_id(credentials)
+        workspace_id = await get_current_workspace_id(request, credentials, db)
         
         # Load the workspace
         from backend.app.repositories.workspace_repository import WorkspaceRepository
