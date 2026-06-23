@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+import os
+import aiofiles
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
@@ -12,6 +14,55 @@ from backend.app.models.user import User
 
 router = APIRouter(prefix="/knowledge", tags=["Knowledge Base"])
 
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads")
+
+
+def _ensure_upload_dir():
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@router.post("/upload", response_model=SuccessResponse)
+async def upload_document_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    name: str = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace_id: UUID = Depends(get_current_workspace_id),
+):
+    """
+    Accept a real file upload (multipart/form-data).
+    Saves the file locally and triggers background RAG processing.
+    """
+    try:
+        _ensure_upload_dir()
+        safe_filename = os.path.basename(file.filename or "upload.bin").replace(" ", "_")
+        save_path = os.path.join(UPLOAD_DIR, f"{workspace_id}_{safe_filename}")
+
+        async with aiofiles.open(save_path, "wb") as out_file:
+            content = await file.read()
+            await out_file.write(content)
+
+        file_url = f"file://{save_path}"
+        display_name = name or safe_filename
+        mime_type = file.content_type or "application/octet-stream"
+
+        doc = await DocumentController.upload(
+            db=db,
+            workspace_id=workspace_id,
+            user_id=current_user.id,
+            name=display_name,
+            file_type=mime_type,
+            file_url=file_url,
+            background_tasks=background_tasks,
+        )
+        return SuccessResponse(
+            data={"document_id": doc.id},
+            message="Document uploaded and processing started",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.post("/documents", response_model=SuccessResponse)
 async def upload_document(
@@ -21,6 +72,7 @@ async def upload_document(
     current_user: User = Depends(get_current_user),
     workspace_id: UUID = Depends(get_current_workspace_id),
 ):
+    """Legacy JSON-body upload endpoint (kept for backward compatibility)."""
     try:
         doc = await DocumentController.upload(
             db=db,
@@ -62,7 +114,7 @@ async def get_document(
         doc = await DocumentController.get_by_id(db, document_id, workspace_id)
         return SuccessResponse(
             data={"id": doc.id, "name": doc.name, "status": doc.status, "file_type": doc.file_type},
-            message="Document retrieved"
+            message="Document retrieved",
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

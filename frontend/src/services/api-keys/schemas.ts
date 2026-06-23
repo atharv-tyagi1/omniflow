@@ -7,8 +7,8 @@ export const apiKeySchema = z.object({
   status: z.enum(["active", "revoked"]),
   request_count: z.number(),
   rate_limit_tier: z.string(),
-  last_used_at: z.string().datetime().nullable().optional(),
-  created_at: z.string().datetime(),
+  last_used_at: z.string().nullable().optional(),
+  created_at: z.string(),
 });
 
 export type ApiKey = z.infer<typeof apiKeySchema>;

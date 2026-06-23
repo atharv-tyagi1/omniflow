@@ -52,11 +52,12 @@ async def process_query(request: QueryRequest):
     # Record the request
     rate_limiter.record()
 
-    # Call Gemini
-    result = await GeminiClient.generate_analyst_response(query)
+    # Call Gemini via the generate_completion interface
+    prompt = f"{GeminiClient.SYSTEM_PROMPT}\n\nUser Query: {query}"
+    result = await GeminiClient.generate_completion(prompt)
 
     return QueryResponse(
-        response=result["response"],
+        response=result["content"] or None,
         error=result["error"],
         remaining=rate_limiter.status(),
     )

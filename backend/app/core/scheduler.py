@@ -160,9 +160,14 @@ class BackgroundScheduler:
                 from backend.app.core.telemetry import log_business_telemetry
 
                 async with AsyncSessionLocal() as session:
-                    # 1. Advisory Lock for safety
-                    lock_result = await session.execute(text("SELECT pg_try_advisory_lock(14000)"))
-                    locked = lock_result.scalar()
+                    # 1. Advisory Lock for safety (only on Postgres)
+                    from backend.app.core.database import engine
+                    is_postgres = engine.dialect.name == "postgresql"
+                    
+                    locked = True
+                    if is_postgres:
+                        lock_result = await session.execute(text("SELECT pg_try_advisory_lock(14000)"))
+                        locked = lock_result.scalar()
                     
                     if locked:
                         log_business_telemetry("scheduler_lock_acquired", workspace_id="system")
@@ -190,7 +195,8 @@ class BackgroundScheduler:
                             await asyncio.wait_for(run_analyst(), timeout=300)
                             
                         finally:
-                            await session.execute(text("SELECT pg_advisory_unlock(14000)"))
+                            if is_postgres:
+                                await session.execute(text("SELECT pg_advisory_unlock(14000)"))
                             await session.commit()
                     else:
                         log_business_telemetry("scheduler_lock_denied", workspace_id="system")

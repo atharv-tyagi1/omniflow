@@ -41,15 +41,23 @@ class KnowledgeService:
         document_id: UUID, workspace_id: UUID, file_url: str, file_type: str
     ):
         """
-        Background task to download, parse, chunk, embed, and store document data.
+        Background task to download (or read locally), parse, chunk, embed, and store document data.
+        Supports both http:// and file:// URL schemes.
         """
         async with AsyncSessionLocal() as db:
             try:
-                # 1. Download file
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(file_url)
-                    response.raise_for_status()
-                    file_bytes = response.content
+                # 1. Obtain raw bytes
+                if file_url.startswith("file://"):
+                    # Local file – strip the scheme and read from disk
+                    local_path = file_url[len("file://"):]
+                    with open(local_path, "rb") as fh:
+                        file_bytes = fh.read()
+                else:
+                    # Remote file – fetch via HTTP
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(file_url)
+                        response.raise_for_status()
+                        file_bytes = response.content
 
                 # 2. Parse file
                 extracted_text = DocumentParser.parse(file_bytes, file_type)

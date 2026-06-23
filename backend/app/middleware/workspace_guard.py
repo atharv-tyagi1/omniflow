@@ -34,6 +34,9 @@ async def get_current_workspace_id(
     
     # Try header first
     header_ws_id = request.headers.get("x-workspace-id")
+    if header_ws_id in ("null", "undefined", ""):
+        header_ws_id = None
+        
     token_ws_id = payload.get("workspace_id")
     
     target_ws_id_str = header_ws_id or token_ws_id
@@ -116,7 +119,7 @@ def require_capability(capability_name: str):
             
         # Define capability plan mapping
         capability_matrix = {
-            "apiKeys": ["pro", "enterprise", "scale"],
+            "apiKeys": ["free", "starter", "pro", "enterprise", "scale"],
             # add other capabilities here as needed
         }
         

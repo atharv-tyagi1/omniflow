@@ -15,28 +15,37 @@ export type Document = {
   file_type: string
 }
 
+/**
+ * Backend wraps every response in { success, data, message }.
+ * These helpers unwrap the inner payload.
+ */
+type ApiWrapper<T> = { success: boolean; data: T; message: string }
+
 export function useDocuments() {
   return useQuery({
     queryKey: knowledgeKeys.documents(),
     queryFn: async () => {
-      const data = await fetchApi(`/api/v1/knowledge/documents`, {
-        requiredCapability: "knowledgeDocuments",
-      })
-      // The API returns an array of IDs: { documents: ["uuid1", "uuid2"] }
-      const docIds = data.documents as string[]
-      
-      // Fetch details for each document
+      // Returns { success, data: { documents: string[] }, message }
+      const response = await fetchApi<ApiWrapper<{ documents: string[] }>>(
+        `/api/v1/knowledge/documents`,
+        { requiredCapability: "knowledgeDocuments" }
+      )
+      const docIds: string[] = response?.data?.documents ?? []
+
+      // Fetch full details for each document id
       const docPromises = docIds.map(async (id) => {
         try {
-          const detail = await fetchApi(`/api/v1/knowledge/documents/${id}`, {
-            requiredCapability: "knowledgeDocuments",
-          })
-          return detail as Document
-        } catch (e) {
+          // Returns { success, data: { id, name, status, file_type }, message }
+          const detail = await fetchApi<ApiWrapper<Document>>(
+            `/api/v1/knowledge/documents/${id}`,
+            { requiredCapability: "knowledgeDocuments" }
+          )
+          return detail?.data ?? null
+        } catch {
           return null
         }
       })
-      
+
       const docs = await Promise.all(docPromises)
       return docs.filter(Boolean) as Document[]
     },
@@ -45,7 +54,7 @@ export function useDocuments() {
 
 export function useUploadDocument() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (uploadData: { name: string; file_type: string; file_url: string }) => {
       return fetchApi(`/api/v1/knowledge/documents`, {
@@ -62,7 +71,7 @@ export function useUploadDocument() {
 
 export function useDeleteDocument() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       return fetchApi(`/api/v1/knowledge/documents/${id}`, {

@@ -3,15 +3,18 @@
 import * as React from "react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { hasCapability } from "@/lib/api-capabilities/registry"
-import { useDocuments, useUploadDocument, useDeleteDocument } from "@/services/knowledge/queries"
+import { useDocuments, useDeleteDocument, knowledgeKeys } from "@/services/knowledge/queries"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function KnowledgeBasePage() {
   const isEnabled = hasCapability("knowledgeDocuments")
   const { data: documents, isLoading, isError } = useDocuments()
   const deleteMutation = useDeleteDocument()
-  const uploadMutation = useUploadDocument()
-  
+  const queryClient = useQueryClient()
+
   const [isUploading, setIsUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   if (!isEnabled) {
     return (
@@ -22,8 +25,8 @@ export default function KnowledgeBasePage() {
             Manage your agent knowledge documents and training datasets.
           </p>
         </div>
-        <EmptyState 
-          variant="coming-soon" 
+        <EmptyState
+          variant="coming-soon"
           title="Knowledge Base Unavailable"
           description="You do not have the required permissions or capabilities enabled for this feature."
           dependency="GET /api/v1/knowledge/documents"
@@ -33,15 +36,50 @@ export default function KnowledgeBasePage() {
     )
   }
 
-  const handleSimulateUpload = () => {
+  const handleUploadClick = () => {
+    setUploadError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
     setIsUploading(true)
-    uploadMutation.mutate({
-      name: `Document ${new Date().toISOString()}`,
-      file_type: "text/plain",
-      file_url: "s3://mock-bucket/mock-doc.txt"
-    }, {
-      onSettled: () => setIsUploading(false)
-    })
+    setUploadError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("name", file.name)
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+      const workspaceId = typeof window !== "undefined" ? localStorage.getItem("workspace_id") : null
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/knowledge/upload`,
+        {
+          method: "POST",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(workspaceId ? { "x-workspace-id": workspaceId } : {}),
+          },
+          body: formData,
+        }
+      )
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || "Upload failed")
+      }
+
+      await queryClient.invalidateQueries({ queryKey: knowledgeKeys.documents() })
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
 
   return (
@@ -53,13 +91,25 @@ export default function KnowledgeBasePage() {
             Manage your agent knowledge documents and training datasets.
           </p>
         </div>
-        <button 
-          onClick={handleSimulateUpload}
-          disabled={isUploading}
-          className="px-4 py-2 bg-[var(--color-primary-start)] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          {isUploading ? "Uploading..." : "Upload Document"}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.pdf,.md,.csv,.json,.docx"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={handleUploadClick}
+            disabled={isUploading}
+            className="px-4 py-2 bg-[var(--color-primary-start)] text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            {isUploading ? "Uploading..." : "Upload Document"}
+          </button>
+          {uploadError && (
+            <p className="text-xs text-red-500 max-w-xs text-right">{uploadError}</p>
+          )}
+        </div>
       </div>
 
       {isLoading && (
@@ -71,7 +121,7 @@ export default function KnowledgeBasePage() {
       )}
 
       {!isLoading && !isError && (!documents || documents.length === 0) && (
-        <EmptyState 
+        <EmptyState
           title="No Documents Found"
           description="Upload your first document to start training your agents with custom knowledge."
           dependency="GET /api/v1/knowledge/documents"
@@ -92,16 +142,21 @@ export default function KnowledgeBasePage() {
             </thead>
             <tbody>
               {documents.map((doc) => (
-                <tr key={doc.id} className="border-b border-[var(--color-border-subtle)] last:border-0 hover:bg-[var(--color-surface-hover)] transition-colors">
+                <tr
+                  key={doc.id}
+                  className="border-b border-[var(--color-border-subtle)] last:border-0 hover:bg-[var(--color-surface-hover)] transition-colors"
+                >
                   <td className="p-4 text-sm font-medium">{doc.name}</td>
-                  <td className="p-4 text-sm text-[var(--color-text-muted)] uppercase">{doc.file_type.split("/").pop() || doc.file_type}</td>
+                  <td className="p-4 text-sm text-[var(--color-text-muted)] uppercase">
+                    {doc.file_type.split("/").pop() || doc.file_type}
+                  </td>
                   <td className="p-4 text-sm">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                       {doc.status}
                     </span>
                   </td>
                   <td className="p-4 text-sm text-right">
-                    <button 
+                    <button
                       onClick={() => deleteMutation.mutate(doc.id)}
                       disabled={deleteMutation.isPending}
                       className="text-red-500 hover:text-red-600 disabled:opacity-50"
