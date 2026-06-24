@@ -1,6 +1,7 @@
 from uuid import UUID
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 import httpx
 import logging
 
@@ -74,25 +75,42 @@ class KnowledgeService:
                 embeddings = GeminiClient.generate_embeddings(text_chunks)
 
                 # 5. Store chunks
+                # Idempotency: Clear existing chunks for this document
+                from sqlalchemy import delete
+                from backend.app.models.document_chunk import DocumentChunk
+                await db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document_id))
+                
                 db_chunks = []
-                for idx, (text, emb) in enumerate(zip(text_chunks, embeddings)):
+                for idx, (chunk_text, emb) in enumerate(zip(text_chunks, embeddings)):
                     db_chunks.append(
                         {
                             "document_id": document_id,
                             "chunk_index": idx,
-                            "content": text,
+                            "content": chunk_text,
                             "embedding": emb,
                         }
                     )
 
                 await DocumentRepository.add_chunks(db, db_chunks)
 
-                # 6. Update Status
-                await DocumentRepository.update_status(db, document_id, "ready")
+                from datetime import datetime, timezone
+                # 6. Update Status and Metadata
+                from sqlalchemy.future import select
+                result = await db.execute(select(Document).where(Document.id == document_id))
+                doc = result.scalars().first()
+                if doc:
+                    doc.status = 'ready'
+                    doc.embedding_model = 'gemini-embedding-2-768'
+                    doc.embedding_dim = 768
+                    doc.embedded_at = datetime.now(timezone.utc)
+                    db.add(doc)
+                await db.commit()
 
             except Exception as e:
                 logger.error(f"Failed to process document {document_id}: {e}")
+                await db.rollback()
                 await DocumentRepository.update_status(db, document_id, "failed")
+                await db.commit()
 
     @staticmethod
     async def get_document(

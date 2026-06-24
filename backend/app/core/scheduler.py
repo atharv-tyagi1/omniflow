@@ -27,12 +27,10 @@ class BackgroundScheduler:
         cls._public_async_task = asyncio.create_task(cls._run_public_async_loop(public_async_interval_seconds))
         cls._business_analyst_task = asyncio.create_task(cls._run_business_analyst_loop(analyst_interval_seconds))
         logger.info(
-            f"[Scheduler] Background schedulers started "
-            f"(outreach: {interval_seconds}s, intel: {intel_interval_seconds}s, maintenance: {maintenance_interval_seconds}s, public_async: {public_async_interval_seconds}s, analyst: {analyst_interval_seconds}s)"
-        )
-        print(
-            f"[Scheduler] Background schedulers started "
-            f"(outreach: {interval_seconds}s, intel: {intel_interval_seconds}s, maintenance: {maintenance_interval_seconds}s, public_async: {public_async_interval_seconds}s)"
+            "[Scheduler] Background schedulers started "
+            "(outreach: %ss, intel: %ss, maintenance: %ss, public_async: %ss, analyst: %ss)",
+            interval_seconds, intel_interval_seconds, maintenance_interval_seconds,
+            public_async_interval_seconds, analyst_interval_seconds
         )
 
     @classmethod
@@ -56,7 +54,6 @@ class BackgroundScheduler:
             await cls._business_analyst_task
             cls._business_analyst_task = None
         logger.info("[Scheduler] Background schedulers stopped")
-        print("[Scheduler] Background schedulers stopped")
 
     @classmethod
     async def _run_outreach_loop(cls, interval_seconds: int):

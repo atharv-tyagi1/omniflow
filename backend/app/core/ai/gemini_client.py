@@ -56,9 +56,11 @@ Response format:
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
 
+            from google.genai import types
             result = cls._client.models.embed_content(
-                model="text-embedding-004",
+                model="gemini-embedding-2",
                 contents=batch,
+                config=types.EmbedContentConfig(output_dimensionality=768)
             )
 
             # Extract embeddings from the new SDK result format
@@ -74,9 +76,11 @@ Response format:
         """
         cls._initialize()
 
+        from google.genai import types
         result = cls._client.models.embed_content(
-            model="text-embedding-004",
+            model="gemini-embedding-2",
             contents=text,
+            config=types.EmbedContentConfig(output_dimensionality=768)
         )
         return result.embeddings[0].values
 

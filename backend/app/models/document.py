@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -35,6 +35,9 @@ class Document(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+    embedding_model = Column(String(100), nullable=True)
+    embedding_dim = Column(Integer, nullable=True)
+    embedded_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")

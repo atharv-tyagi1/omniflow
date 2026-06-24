@@ -11,6 +11,10 @@ from alembic import context
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.app.core.config import settings
+
+# Enforce PostgreSQL guard on migration startup
+from backend.app.core.database import engine
+
 from backend.app.models.base import Base
 import backend.app.models  # noqa: F401 — registers all models with Base.metadata
 

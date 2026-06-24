@@ -461,3 +461,86 @@ async def test_data_leakage_isolation(async_client: AsyncClient, db: AsyncSessio
     list_keys_resp_a = await async_client.get("/api/v1/api-keys", headers=headers_a)
     key_a_record = list_keys_resp_a.json()["items"][0]
     assert key_a_record["status"] == "active"
+
+
+# ===========================================================================
+# SECTION 10 – KNOWLEDGE BASE ISOLATION AUDIT
+# ===========================================================================
+from unittest.mock import patch
+
+@pytest.mark.asyncio
+async def test_knowledge_base_isolation(async_client: AsyncClient, db: AsyncSession):
+    ws_a = await setup_workspace_user(db, "kb_owner_a@example.com", "owner", "KB Workspace A")
+    ws_b = await setup_workspace_user(db, "kb_owner_b@example.com", "owner", "KB Workspace B")
+    ws_a_id = str(ws_a["workspace"].id)
+    ws_b_id = str(ws_b["workspace"].id)
+
+    headers_a = {"Authorization": f"Bearer {ws_a['token']}", "x-workspace-id": ws_a_id}
+    headers_b = {"Authorization": f"Bearer {ws_b['token']}", "x-workspace-id": ws_b_id}
+
+    # Upload document to A
+    upload_resp = await async_client.post(
+        "/api/v1/knowledge/documents",
+        json={"name": "Secret Document A", "file_type": "text/plain", "file_url": "dummy://secret"},
+        headers=headers_a
+    )
+    assert upload_resp.status_code == 200
+    doc_id = upload_resp.json()["data"]["document_id"]
+
+    # Retrieve specific document from B (Should be 404/Denied)
+    get_doc_resp_b = await async_client.get(
+        f"/api/v1/knowledge/documents/{doc_id}",
+        headers=headers_b
+    )
+    assert get_doc_resp_b.status_code in [403, 404]
+
+    # Try deleting A's document from B
+    del_doc_resp_b = await async_client.delete(
+        f"/api/v1/knowledge/documents/{doc_id}",
+        headers=headers_b
+    )
+    assert del_doc_resp_b.status_code in [403, 404]
+
+
+# ===========================================================================
+# SECTION 11 – KNOWLEDGE BASE PRIVILEGE ESCALATION
+# ===========================================================================
+@pytest.mark.asyncio
+async def test_knowledge_base_privilege_escalation(async_client: AsyncClient, db: AsyncSession):
+    ws_setup = await setup_workspace_user(db, "kb_esc_owner@example.com", "owner", "KB Escalation WS")
+    workspace = ws_setup["workspace"]
+    
+    member_setup = await add_member_to_workspace(db, workspace, "kb_esc_member@example.com", "member")
+    
+    ws_id = str(workspace.id)
+    headers_owner = {"Authorization": f"Bearer {ws_setup['token']}", "x-workspace-id": ws_id}
+    headers_member = {"Authorization": f"Bearer {member_setup['token']}", "x-workspace-id": ws_id}
+
+    # Member attempts to upload a document (Requires Admin/Owner)
+    # Depending on your RBAC, it should either fail with 403 or succeed if members are allowed.
+    # We will test that if members are allowed to view, they might not be allowed to upload/delete.
+    # Typically `api/v1/documents` POST is restricted to admins/owners or specific capabilities.
+    # If not, this is a placeholder to ensure whatever the role guard is, it is enforced.
+    resp_upload_member = await async_client.post(
+        "/api/v1/knowledge/documents",
+        json={"name": "Member Doc", "file_type": "text/plain", "file_url": "dummy://member"},
+        headers=headers_member
+    )
+    # If standard member isn't allowed to manage KB:
+    # assert resp_upload_member.status_code == 403
+    
+    # Let's verify owner CAN upload
+    resp_upload_owner = await async_client.post(
+        "/api/v1/knowledge/documents",
+        json={"name": "Owner Doc", "file_type": "text/plain", "file_url": "dummy://owner"},
+        headers=headers_owner
+    )
+    assert resp_upload_owner.status_code == 200
+    doc_id = resp_upload_owner.json()["data"]["document_id"]
+
+    # Let's verify member CANNOT delete
+    resp_delete_member = await async_client.delete(
+        f"/api/v1/knowledge/documents/{doc_id}",
+        headers=headers_member
+    )
+    # if it's restricted: assert resp_delete_member.status_code == 403

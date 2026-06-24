@@ -67,13 +67,14 @@ class PublicAsyncJobWorker:
         
         result = await db.execute(stmt)
         jobs_to_process = result.scalars().all()
-        print("JOBS TO PROCESS COUNT:", len(jobs_to_process))
-        for j in jobs_to_process:
-            print(f"JOB: id={j.id}, type={j.job_type}, status={j.status}")
         
         if not jobs_to_process:
             return
-            
+
+        logger.debug("PublicAsyncJobWorker: claiming %d jobs", len(jobs_to_process))
+        for job in jobs_to_process:
+            logger.debug("Claiming job id=%s type=%s status=%s", job.id, job.job_type, job.status)
+
         for job in jobs_to_process:
             # Mark processing
             job.status = "processing"
@@ -152,9 +153,7 @@ class PublicAsyncJobWorker:
                 await db.commit()
                 
             except Exception as e:
-                print("ASYNC JOB WORKER EXCEPTION:", str(e))
-                import traceback
-                traceback.print_exc()
+                logger.exception("PublicAsyncJobWorker: unhandled exception in job %s (%s)", job_id, job.job_type)
                 await db.rollback()
                 
                 # Re-fetch to update status

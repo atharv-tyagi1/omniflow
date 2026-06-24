@@ -140,9 +140,10 @@ TEST_USER_B = {
 class _AuthBundle:
     """Small helper carrying token + workspace_id after signup."""
 
-    def __init__(self, token: str, workspace_id: str):
+    def __init__(self, token: str, workspace_id: str, user_id: str):
         self.token = token
         self.workspace_id = workspace_id
+        self.user_id = user_id
 
 
 async def _signup(client: AsyncClient, user_data: dict) -> _AuthBundle:
@@ -151,6 +152,7 @@ async def _signup(client: AsyncClient, user_data: dict) -> _AuthBundle:
     return _AuthBundle(
         token=data["access_token"],
         workspace_id=data["user"]["workspace_id"],
+        user_id=data["user"]["id"],
     )
 
 
