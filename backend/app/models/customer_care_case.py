@@ -48,7 +48,6 @@ class CustomerCareCase(Base, TimestampMixin):
             "idx_cc_cases_unique_active",
             "workspace_id", "conversation_id",
             unique=True,
-            postgresql_where=text("current_stage NOT IN ('resolved', 'closed')"),
-            sqlite_where=text("current_stage NOT IN ('resolved', 'closed')")
+            postgresql_where=text("current_stage NOT IN ('resolved', 'closed')")
         )
     )
