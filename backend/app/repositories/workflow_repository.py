@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 
 from backend.app.models.workflow import Workflow
 from backend.app.models.workflow_run import WorkflowRun
+from backend.app.models.workflow_run_step import WorkflowRunStep
 
 
 class WorkflowRepository:
@@ -72,3 +73,21 @@ class WorkflowRepository:
             db.add(run)
             await db.flush()
         return run
+
+    @staticmethod
+    async def list_runs_by_workflow(db: AsyncSession, workflow_id: UUID) -> List[WorkflowRun]:
+        result = await db.execute(
+            select(WorkflowRun)
+            .where(WorkflowRun.workflow_id == workflow_id)
+            .order_by(WorkflowRun.executed_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_run_with_steps(db: AsyncSession, run_id: UUID) -> Optional[WorkflowRun]:
+        result = await db.execute(
+            select(WorkflowRun)
+            .where(WorkflowRun.id == run_id)
+            .options(selectinload(WorkflowRun.steps))
+        )
+        return result.scalars().first()

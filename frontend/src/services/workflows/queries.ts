@@ -42,3 +42,36 @@ export function useTelegramStats(workspaceId: string) {
     refetchInterval: 30 * 1000,
   })
 }
+
+export const useWorkflowDetails = (workspaceId: string, workflowId: string) => {
+  return useQuery({
+    queryKey: ["workflow_details", workspaceId, workflowId],
+    queryFn: async () => {
+      const res = await fetchApi<any>(`/api/v1/workflows/${workflowId}`)
+      return res.data
+    },
+    enabled: !!workspaceId && !!workflowId,
+  })
+}
+
+export const useWorkflowRuns = (workspaceId: string, workflowId: string) => {
+  return useQuery({
+    queryKey: ["workflow_runs", workspaceId, workflowId],
+    queryFn: async () => {
+      const res = await fetchApi<any>(`/api/v1/workflows/${workflowId}/runs`)
+      return res.data?.runs || []
+    },
+    enabled: !!workspaceId && !!workflowId,
+  })
+}
+
+export const useWorkflowRunDetails = (workspaceId: string, workflowId: string, runId: string) => {
+  return useQuery({
+    queryKey: ["workflow_run_details", workspaceId, workflowId, runId],
+    queryFn: async () => {
+      const res = await fetchApi<any>(`/api/v1/workflows/${workflowId}/runs/${runId}`)
+      return res.data
+    },
+    enabled: !!workspaceId && !!workflowId && !!runId,
+  })
+}

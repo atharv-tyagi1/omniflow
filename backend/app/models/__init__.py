@@ -40,7 +40,15 @@ from backend.app.models.analytics import (
 
 # Workflow models
 from backend.app.models.workflow import Workflow
+from backend.app.models.workflow_version import WorkflowVersion
+from backend.app.models.workflow_node import WorkflowNode
+from backend.app.models.workflow_edge import WorkflowEdge
 from backend.app.models.workflow_run import WorkflowRun
+from backend.app.models.workflow_run_step import WorkflowRunStep
+from backend.app.models.workflow_log import WorkflowLog
+from backend.app.models.workflow_event_queue import WorkflowEventQueue
+from backend.app.models.workflow_dead_letter_event import WorkflowDeadLetterEvent
+from backend.app.models.agent import Agent
 
 # Communication models
 from backend.app.models.voice_interaction import VoiceInteraction
@@ -85,6 +93,25 @@ from backend.app.models.business_analyst import (
     BusinessQuestionAudit,
 )
 
+# Phase 21.2C: Agent Platform Models
+from backend.app.models.agent_template import AgentTemplate
+from backend.app.models.agent_version import AgentVersion
+from backend.app.models.agent_model import AgentModel
+from backend.app.models.agent_prompt import AgentPrompt
+from backend.app.models.agent_tool_policy import AgentToolPolicy
+from backend.app.models.channel import Channel
+from backend.app.models.agent_channel import AgentChannel
+from backend.app.models.conversation_participant import ConversationParticipant
+from backend.app.models.workspace_memory import WorkspaceMemory
+from backend.app.models.agent_memory import AgentMemory
+from backend.app.models.conversation_memory import ConversationMemory
+from backend.app.models.agent_run import AgentRun
+from backend.app.models.agent_run_step import AgentRunStep
+from backend.app.models.agent_decision_trace import AgentDecisionTrace
+from backend.app.models.agent_log import AgentLog
+from backend.app.models.agent_metric import AgentMetric
+from backend.app.models.agent_permission import AgentPermission
+
 
 __all__ = [
     "Base",
@@ -109,6 +136,14 @@ __all__ = [
     "DatasetQuery",
     "Workflow",
     "WorkflowRun",
+    "WorkflowVersion",
+    "WorkflowNode",
+    "WorkflowEdge",
+    "WorkflowRunStep",
+    "WorkflowLog",
+    "WorkflowEventQueue",
+    "WorkflowDeadLetterEvent",
+    "Agent",
     "VoiceInteraction",
     "Notification",
     "AuditLog",
@@ -134,4 +169,21 @@ __all__ = [
     "ExecutiveReport",
     "InsightLineage",
     "BusinessQuestionAudit",
+    "AgentTemplate",
+    "AgentVersion",
+    "AgentModel",
+    "AgentPrompt",
+    "AgentToolPolicy",
+    "Channel",
+    "AgentChannel",
+    "ConversationParticipant",
+    "WorkspaceMemory",
+    "AgentMemory",
+    "ConversationMemory",
+    "AgentRun",
+    "AgentRunStep",
+    "AgentDecisionTrace",
+    "AgentLog",
+    "AgentMetric",
+    "AgentPermission",
 ]

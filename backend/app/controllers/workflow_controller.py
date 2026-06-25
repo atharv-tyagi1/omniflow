@@ -3,8 +3,10 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.services.workflow_service import WorkflowService
-from backend.app.models.workflow import Workflow
 from backend.app.models.workflow_run import WorkflowRun
+from backend.app.models.workflow import Workflow
+from backend.app.services.workflow_builder_service import WorkflowBuilderService
+from backend.app.schemas.workflow_builder import WorkflowDraftUpdate
 
 
 class WorkflowController:
@@ -33,3 +35,23 @@ class WorkflowController:
         return await WorkflowService.trigger_workflow(
             db=db, workspace_id=workspace_id, workflow_id=workflow_id
         )
+
+    @staticmethod
+    async def get_workflow_draft(db: AsyncSession, workspace_id: UUID, workflow_id: UUID):
+        return await WorkflowBuilderService.get_workflow_draft(db, workspace_id, workflow_id)
+
+    @staticmethod
+    async def list_runs(db: AsyncSession, workspace_id: UUID, workflow_id: UUID):
+        return await WorkflowService.list_runs(db, workspace_id, workflow_id)
+
+    @staticmethod
+    async def get_run_details(db: AsyncSession, workspace_id: UUID, workflow_id: UUID, run_id: UUID):
+        return await WorkflowService.get_run_details(db, workspace_id, workflow_id, run_id)
+
+    @staticmethod
+    async def save_draft(db: AsyncSession, workspace_id: UUID, workflow_id: UUID, draft: WorkflowDraftUpdate):
+        return await WorkflowBuilderService.save_draft(db, workspace_id, workflow_id, draft)
+
+    @staticmethod
+    async def publish(db: AsyncSession, workspace_id: UUID, workflow_id: UUID):
+        return await WorkflowBuilderService.publish(db, workspace_id, workflow_id)

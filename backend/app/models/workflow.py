@@ -22,14 +22,22 @@ class Workflow(Base):
     name = Column(String(255), nullable=False)
     trigger_type = Column(String(100), nullable=False)
     status = Column(String(20), nullable=False, default="active")
+    active_version_id = Column(UUID(as_uuid=True), ForeignKey("workflow_versions.id", use_alter=True), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")
+    versions = relationship("WorkflowVersion", back_populates="workflow", lazy="selectin", primaryjoin="Workflow.id==WorkflowVersion.workflow_id")
     runs = relationship("WorkflowRun", back_populates="workflow", lazy="selectin")
 
     __table_args__ = (Index("idx_workflows_workspace", "workspace_id"),)

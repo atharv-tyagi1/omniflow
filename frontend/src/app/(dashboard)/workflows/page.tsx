@@ -15,6 +15,8 @@ const statusConfig: Record<string, { variant: any; label: string }> = {
   inactive: { variant: "neutral", label: "Inactive" },
 }
 
+import Link from "next/link"
+
 function WorkflowCard({ wf }: { wf: any }) {
   const cfg = statusConfig[wf.status?.toLowerCase() ?? "inactive"] ?? statusConfig.inactive
   return (
@@ -48,12 +50,20 @@ function WorkflowCard({ wf }: { wf: any }) {
         ))}
       </div>
 
-      {wf.created_at && (
-        <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] pt-1 border-t border-white/5">
-          <Clock className="h-3 w-3" />
-          <span>Created {new Date(wf.created_at).toLocaleString()}</span>
-        </div>
-      )}
+      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+        {wf.created_at ? (
+          <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+            <Clock className="h-3 w-3" />
+            <span>Created {new Date(wf.created_at).toLocaleDateString()}</span>
+          </div>
+        ) : <div />}
+        <Link 
+          href={`/workflows/${wf.id}`}
+          className="text-xs font-medium text-violet-400 hover:text-violet-300 bg-violet-500/10 px-2.5 py-1 rounded-md transition-colors"
+        >
+          Open Builder
+        </Link>
+      </div>
     </div>
   )
 }
