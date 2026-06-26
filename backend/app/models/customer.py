@@ -27,10 +27,8 @@ class Customer(Base, TimestampMixin):
 
     # Relationships
     workspace = relationship("Workspace", lazy="selectin")
-    conversations = relationship(
-        "Conversation", back_populates="customer", lazy="selectin"
-    )
     tickets = relationship("Ticket", back_populates="customer", lazy="selectin")
+
 
     __table_args__ = (
         Index("idx_customers_workspace", "workspace_id"),
