@@ -44,6 +44,9 @@ class Conversation(Base):
     workspace = relationship("Workspace", lazy="selectin")
     channel = relationship("Channel", lazy="selectin")
     participants = relationship("ConversationParticipant", backref="conversation", lazy="selectin")
+    messages = relationship(
+        "Message", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
+    )
 
     __table_args__ = (
         Index("idx_conversations_workspace", "workspace_id"),
