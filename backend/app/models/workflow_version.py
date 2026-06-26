@@ -29,7 +29,7 @@ class WorkflowVersion(Base):
     )
 
     # Relationships
-    workflow = relationship("Workflow", back_populates="versions", lazy="selectin")
+    workflow = relationship("Workflow", back_populates="versions", lazy="selectin", foreign_keys=[workflow_id])
     nodes = relationship("WorkflowNode", back_populates="version", lazy="selectin", cascade="all, delete-orphan")
     edges = relationship("WorkflowEdge", back_populates="version", lazy="selectin", cascade="all, delete-orphan")
     runs = relationship("WorkflowRun", back_populates="version", lazy="selectin")

@@ -47,6 +47,18 @@ class Conversation(Base):
     messages = relationship(
         "Message", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
     )
+    handoffs = relationship(
+        "Handoff", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
+    )
+    topics = relationship(
+        "Topic", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
+    )
+    sentiments = relationship(
+        "Sentiment", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
+    )
+    voice_interactions = relationship(
+        "VoiceInteraction", back_populates="conversation", cascade="all, delete-orphan", lazy="selectin"
+    )
 
     __table_args__ = (
         Index("idx_conversations_workspace", "workspace_id"),
