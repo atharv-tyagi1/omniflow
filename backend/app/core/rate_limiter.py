@@ -13,18 +13,28 @@ logger = logging.getLogger(__name__)
 # Very simple sliding window for development fallback
 _in_memory_limits = {}
 
+_redis_client = None
+
 def get_redis_client():
+    global _redis_client
     if settings.ENVIRONMENT == "production":
-        import redis.asyncio as redis
-        # Replace with actual config
+        if _redis_client is not None:
+            return _redis_client
         redis_url = getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
-        return redis.from_url(redis_url, decode_responses=True)
+        if redis_url == "fakeredis":
+            import fakeredis.aioredis as fakeredis
+            _redis_client = fakeredis.FakeRedis(decode_responses=True)
+            return _redis_client
+        import redis.asyncio as redis
+        _redis_client = redis.from_url(redis_url, decode_responses=True)
+        return _redis_client
     return None
 
 async def check_rate_limit(key: str, limit: int, window_seconds: int) -> bool:
     """
     Returns True if allowed, False if rate limited.
     """
+    logger.info(f"check_rate_limit called! ENVIRONMENT={getattr(settings, 'ENVIRONMENT', 'development')}")
     if getattr(settings, "ENVIRONMENT", "development") == "production":
         redis = get_redis_client()
         if redis:
@@ -32,18 +42,22 @@ async def check_rate_limit(key: str, limit: int, window_seconds: int) -> bool:
                 current_time = int(time.time())
                 window_start = current_time - window_seconds
                 
-                # ZREMRANGEBYSCORE key 0 window_start
-                await redis.zremrangebyscore(key, 0, window_start)
+                import uuid
+                member = f"{current_time}_{uuid.uuid4()}"
                 
-                # ZCARD key
-                count = await redis.zcard(key)
+                pipeline = redis.pipeline(transaction=True)
+                pipeline.zremrangebyscore(key, 0, window_start)
+                pipeline.zadd(key, {member: current_time})
+                pipeline.zcard(key)
+                pipeline.expire(key, window_seconds)
                 
-                if count >= limit:
+                results = await pipeline.execute()
+                count = results[2]
+                
+                logger.info(f"Rate Limiter [Redis]: key={key}, member={member}, count={count}, limit={limit}")
+                
+                if count > limit:
                     return False
-                    
-                # ZADD key {current_time} {current_time}
-                await redis.zadd(key, {str(current_time): current_time})
-                await redis.expire(key, window_seconds)
                 return True
             except Exception as e:
                 logger.error(f"Redis rate limiting failed: {e}")
