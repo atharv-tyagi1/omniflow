@@ -13,7 +13,7 @@
   "businessInsights": false,
   "businessRecommendations": false,
   "businessReports": false,
-  "agentMetrics": false,
+  "agentMetrics": true,
   "apiKeys": true,
   "knowledgeDocuments": true,
   "knowledgeDatasets": false,
@@ -22,5 +22,6 @@
   "workflows": true,
   "channels": true,
   "voice": true,
-  "telegram": true
+  "telegram": true,
+  "agents": true
 }

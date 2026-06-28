@@ -3,9 +3,20 @@
 import * as React from "react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { hasCapability } from "@/lib/api-capabilities/registry"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import { useAgents } from "@/services/agents/queries"
+import { useAuth } from "@/context/AuthContext"
+import { CreateAgentModal } from "@/components/agents/CreateAgentModal"
+import { useRouter } from "next/navigation"
 
 export default function AgentsPage() {
-  const isEnabled = hasCapability("agentMetrics")
+  const isEnabled = hasCapability("agents")
+  const { workspace } = useAuth()
+  const router = useRouter()
+  
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false)
+  const { data: agents = [], isLoading } = useAgents(workspace?.id)
 
   if (!isEnabled) {
     return (
@@ -63,20 +74,64 @@ export default function AgentsPage() {
             Manage your autonomous customer service agents.
           </p>
         </div>
-        <button 
-          disabled
-          className="px-4 py-2 bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] rounded-lg font-medium cursor-not-allowed opacity-70"
-          title="Custom agents coming soon"
-        >
-          + Create Custom Agent
-        </button>
+        <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Custom Agent
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Custom Workspace Agents</h2>
+        {isLoading ? (
+          <div className="animate-pulse space-y-4">
+            <div className="h-32 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)]"></div>
+          </div>
+        ) : agents.length === 0 ? (
+          <EmptyState 
+            title="No Custom Agents"
+            description="You haven't built any custom agents for this workspace yet."
+            action={
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                Build an Agent
+              </Button>
+            }
+          />
+        ) : (
+          <div className="grid gap-6 md:grid-cols-3">
+            {agents.map((agent) => (
+              <div key={agent.id} className="border border-[var(--color-border-strong)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm flex flex-col">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg">{agent.name}</h3>
+                    <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">Custom ({agent.category})</span>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${agent.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400'}`}>
+                    {agent.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <p className="text-sm text-[var(--color-text-muted)] mb-6 flex-grow">
+                  {agent.active_version_id ? 'Configuration Published' : 'Draft - Needs configuration'}
+                </p>
+
+                <div className="pt-4 border-t border-[var(--color-border-subtle)] flex gap-2">
+                  <button 
+                    onClick={() => router.push(`/agents/${agent.id}`)}
+                    className="flex-1 px-3 py-1.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded text-sm font-medium hover:bg-[var(--color-surface-hover)] transition-colors"
+                  >
+                    Configure
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Active System Agents</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {systemAgents.map((agent) => (
-            <div key={agent.id} className="border border-[var(--color-border-strong)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm flex flex-col">
+            <div key={agent.id} className="border border-[var(--color-border-strong)] rounded-xl p-5 bg-[var(--color-surface)] shadow-sm flex flex-col opacity-80">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-lg">{agent.name}</h3>
@@ -101,8 +156,8 @@ export default function AgentsPage() {
               </div>
 
               <div className="pt-4 border-t border-[var(--color-border-subtle)] flex gap-2">
-                <button className="flex-1 px-3 py-1.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded text-sm font-medium hover:bg-[var(--color-surface-hover)] transition-colors">
-                  Configure (Coming Soon)
+                <button className="flex-1 px-3 py-1.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded text-sm font-medium cursor-not-allowed text-[var(--color-text-muted)] transition-colors">
+                  System Controlled
                 </button>
               </div>
             </div>
@@ -110,20 +165,10 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <div className="mt-12 p-6 rounded-xl border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface-hover)]">
-        <h3 className="text-lg font-semibold mb-2 flex items-center">
-          <span className="mr-2">🚧</span> Advanced Capabilities (Coming Soon)
-        </h3>
-        <p className="text-sm text-[var(--color-text-muted)] mb-4">
-          The following features require the next version of the AI orchestration engine to be deployed.
-        </p>
-        <ul className="list-disc list-inside text-sm text-[var(--color-text-secondary)] space-y-2 ml-2">
-          <li>Custom Agent Creation via Dashboard</li>
-          <li>Agent Persona & Prompt Tuning UI</li>
-          <li>Multi-Agent Orchestration Visualizer</li>
-          <li>Bring Your Own LLM Model Selection</li>
-        </ul>
-      </div>
+      <CreateAgentModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
     </div>
   )
 }
