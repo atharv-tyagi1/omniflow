@@ -34,18 +34,20 @@ async def public_api_exception_handler(request: Request, exc: PublicAPIException
 
 async def public_validation_exception_handler(request: Request, exc: RequestValidationError):
     """Sanitize FastAPI validation errors for public endpoints."""
+    from fastapi.encoders import jsonable_encoder
+    errors = jsonable_encoder(exc.errors())
     if request.url.path.startswith("/api/public"):
         return create_public_error_response(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Invalid request payload.",
             "VALIDATION_ERROR",
-            {"details": exc.errors()}
+            {"details": errors}
         )
     # Re-raise or let the default handler take over if not public (FastAPI automatically handles unless we override globally)
     # For global override, we need to return the default format for internal APIs.
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors()},
+        content={"detail": errors},
     )
 
 async def public_http_exception_handler(request: Request, exc: StarletteHTTPException):
