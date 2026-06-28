@@ -1,1 +1,0 @@
-OmniFlow is an AI customer operations platform designed to automate workflows and resolve customer support queries automatically.
