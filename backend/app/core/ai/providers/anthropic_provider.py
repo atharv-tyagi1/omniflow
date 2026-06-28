@@ -1,23 +1,27 @@
-from typing import Any, Dict, Optional, Type
-from pydantic import BaseModel
+"""Anthropic Provider implementation stub."""
 
+from typing import Any, Dict, List, Optional
 from backend.app.core.ai.providers.base import BaseProvider
-from backend.app.core.agent.exceptions import ProviderError
 
 class AnthropicProvider(BaseProvider):
-    """
-    Stub adapter for Anthropic API.
-    To be fully implemented in a future phase.
-    """
+    """Stub implementation of BaseProvider for Anthropic models."""
+    
+    def get_provider_name(self) -> str:
+        return "anthropic"
+
+    async def get_token_count(self, messages: List[Dict[str, Any]], model: str) -> int:
+        """Estimates token count (stub)."""
+        return sum(len(str(m.get("content", ""))) // 4 for m in messages)
 
     async def generate_completion(
         self,
-        prompt: str,
-        response_schema: Optional[Type[BaseModel]] = None,
-        model: str = "claude-3-5-sonnet",
-        temperature: float = 0.2
+        messages: List[Dict[str, Any]],
+        model: str,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = "auto",
+        **kwargs: Any,
     ) -> Dict[str, Any]:
-        """
-        Placeholder for Anthropic completion logic.
-        """
-        raise ProviderError("AnthropicProvider is currently a stub and not yet implemented.")
+        """Generates completion using Anthropic API (stub)."""
+        raise NotImplementedError("Anthropic provider is currently a stub for Phase 21.2D. Adapters deferred.")
