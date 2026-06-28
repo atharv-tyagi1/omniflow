@@ -1,19 +1,25 @@
+"""Runtime Exceptions for Agent Execution."""
+
 class AgentRuntimeError(Exception):
     """Base exception for all agent runtime errors."""
     pass
 
-class ProviderError(AgentRuntimeError):
-    """Raised when an LLM provider fails (timeout, 5xx, etc.)."""
+class ProviderTimeoutError(AgentRuntimeError):
+    """Raised when the LLM provider times out."""
     pass
 
-class PolicyViolationError(AgentRuntimeError):
-    """Raised when an action violates a workspace or agent policy."""
+class ToolPolicyDenialError(AgentRuntimeError):
+    """Raised when an agent attempts to use a tool improperly or beyond its policy."""
     pass
 
-class ToolExecutionError(AgentRuntimeError):
-    """Raised when a tool fails to execute successfully."""
+class MaxRecursionError(AgentRuntimeError):
+    """Raised when the agent exceeds maximum tool calls or workflow hops per turn."""
     pass
 
-class ContextAssemblyError(AgentRuntimeError):
-    """Raised when the context builder fails to construct the prompt."""
+class MemoryRetrievalError(AgentRuntimeError):
+    """Raised when the runtime fails to retrieve required memory context."""
+    pass
+
+class ContextLimitExceededError(AgentRuntimeError):
+    """Raised when the constructed context exceeds the model's maximum context window."""
     pass

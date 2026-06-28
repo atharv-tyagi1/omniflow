@@ -12,6 +12,7 @@ from backend.app.services.handoff.rule_engine import HandoffRuleEngine
 from backend.app.services.handoff.state_manager import HandoffStateManager
 from backend.app.services.handoff.context_builder import HandoffContextBuilder
 from backend.app.services.handoff.executor import HandoffExecutor
+from backend.app.services.agent_service import AgentService
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +51,14 @@ class HandoffCoordinator:
             logger.info(f"Idempotency hit for query/message. Suppressing duplicate handoff.")
             # We skip evaluating a new handoff and just return the execution via active agent
             active_agent_name = conversation.current_agent or "support"
-            target_agent = AgentFactory.create_agent(active_agent_name)
-            return await target_agent.respond(
+            return await AgentService.dispatch_agent(
                 db=db,
-                conversation_id=conversation.id,
-                customer_id=conversation.customer_id,
                 workspace_id=conversation.workspace_id,
+                category=active_agent_name,
                 query=query,
-                router_metadata=router_metadata
+                router_metadata=router_metadata,
+                conversation_id=conversation.id,
+                customer_id=conversation.customer_id
             )
 
         # 3. Evaluate Rules
@@ -100,14 +101,14 @@ class HandoffCoordinator:
                 
             # Continue with current agent (fallback to support if None)
             target_agent_name = active_agent.value if active_agent else "support"
-            target_agent = AgentFactory.create_agent(target_agent_name)
-            return await target_agent.respond(
+            return await AgentService.dispatch_agent(
                 db=db,
-                conversation_id=conversation.id,
-                customer_id=conversation.customer_id,
                 workspace_id=conversation.workspace_id,
+                category=target_agent_name,
                 query=query,
-                router_metadata=router_metadata
+                router_metadata=router_metadata,
+                conversation_id=conversation.id,
+                customer_id=conversation.customer_id
             )
 
         # 4. Build Context

@@ -1,72 +1,93 @@
-from typing import Dict, Any, List
-from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
+"""Deterministic Context Builder for Agent Runtime."""
 
-from backend.app.core.agent.prompt_engine import PromptEngine
-from backend.app.core.agent.memory_engine import MemoryEngine
-from backend.app.core.agent.knowledge_engine import KnowledgeEngine
-from backend.app.models.agent_version import AgentVersion
+from typing import List, Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ContextBuilder:
     """
-    Constructs the LLM context deterministically: 
-    Workspace Policies -> System Prompt -> Agent Prompt -> Conversation Context -> 
-    Workspace Memory -> Agent Memory -> Conversation Memory -> Knowledge Retrieval -> 
-    Tool Availability -> Workflow Availability -> Model Configuration -> LLM Request.
+    Constructs the LLM context deterministically:
+    1. Workspace Policies
+    2. System Prompt
+    3. Agent Prompt
+    4. Conversation Context
+    5. Workspace Memory
+    6. Agent Memory
+    7. Conversation Memory
+    8. Knowledge Retrieval
+    9. Tool Availability
+    10. Workflow Availability
+    11. Model Configuration
+    12. LLM Request
     """
 
-    @staticmethod
-    async def build_context(
-        db: AsyncSession,
-        workspace_id: UUID,
-        agent_id: UUID,
-        agent_version: AgentVersion,
-        conversation_id: UUID,
-        query: str,
-        workspace_policies: List[str],
-        available_tools: List[str],
-        available_workflows: List[str],
-        model_config: Dict[str, Any]
-    ) -> str:
+    def __init__(self):
+        pass
+        
+    async def build_messages(
+        self,
+        workspace_policies: str,
+        system_prompt: str,
+        agent_prompt: str,
+        conversation_context: str,
+        workspace_memory: str,
+        agent_memory: str,
+        conversation_memory: str,
+        knowledge_retrieval: str,
+        tool_availability: str,
+        workflow_availability: str,
+        model_configuration: str,
+        conversation_history: List[Dict[str, Any]],
+        user_message: str
+    ) -> List[Dict[str, Any]]:
         """
-        Builds the complete formatted context string for the LLM.
+        Builds the unified list of messages to send to the LLM.
+        Workspace policies are strictly unbypassable and applied first.
         """
-        parts = []
+        messages = []
+        
+        # Assemble the deterministic system content block
+        system_content = f"""[WORKSPACE POLICIES - STRICTLY ENFORCED]
+{workspace_policies or 'None'}
 
-        # 1. Workspace Policies (unbypassable and applied first)
-        if workspace_policies:
-            parts.append("## WORKSPACE POLICIES (MANDATORY)\n" + "\n".join(workspace_policies))
+[SYSTEM INSTRUCTIONS]
+{system_prompt or 'None'}
 
-        # 2. System Prompt
-        system_prompt = PromptEngine.get_active_prompt(agent_version)
-        parts.append(f"## SYSTEM PROMPT\n{system_prompt}")
+[AGENT ROLE AND OBJECTIVES]
+{agent_prompt or 'None'}
 
-        # 3. Agent Prompt (Task/Role specifics)
-        # Using the base query or additional agent instruction set
-        parts.append(f"## AGENT PROMPT / CURRENT QUERY\n{query}")
+[CONVERSATION CONTEXT]
+{conversation_context or 'None'}
 
-        # 4. Conversation Context (History)
-        # We assume conversation context is injected later or retrieved here
-        parts.append("## CONVERSATION CONTEXT\n[History injected here]")
+[WORKSPACE MEMORY]
+{workspace_memory or 'None'}
 
-        # 5-7. Memories
-        memories = await MemoryEngine.assemble_memory_context(db, workspace_id, agent_id, conversation_id)
-        parts.append(f"## WORKSPACE MEMORY\n{memories['workspace_memory']}")
-        parts.append(f"## AGENT MEMORY\n{memories['agent_memory']}")
-        parts.append(f"## CONVERSATION MEMORY\n{memories['conversation_memory']}")
+[AGENT MEMORY]
+{agent_memory or 'None'}
 
-        # 8. Knowledge Retrieval (RAG)
-        rag_context = await KnowledgeEngine.retrieve_knowledge(db, workspace_id, query)
-        parts.append(f"## KNOWLEDGE RETRIEVAL\n{rag_context['context_string']}")
+[CONVERSATION MEMORY]
+{conversation_memory or 'None'}
 
-        # 9. Tool Availability
-        parts.append(f"## TOOL AVAILABILITY\n{', '.join(available_tools)}")
+[KNOWLEDGE RETRIEVAL]
+{knowledge_retrieval or 'None'}
 
-        # 10. Workflow Availability
-        parts.append(f"## WORKFLOW AVAILABILITY\n{', '.join(available_workflows)}")
+[TOOL AVAILABILITY]
+{tool_availability or 'None'}
 
-        # 11. Model Configuration
-        # Not explicitly put into text unless instructing the model on its limits
-        parts.append(f"## MODEL CONFIGURATION\nModel params restricted by system.")
+[WORKFLOW AVAILABILITY]
+{workflow_availability or 'None'}
 
-        return "\n\n".join(parts)
+[MODEL CONFIGURATION]
+{model_configuration or 'None'}"""
+
+        messages.append({"role": "system", "content": system_content.strip()})
+        
+        # Append conversation history
+        for msg in conversation_history:
+            messages.append(msg)
+            
+        # Append the final LLM Request
+        messages.append({"role": "user", "content": user_message})
+            
+        return messages

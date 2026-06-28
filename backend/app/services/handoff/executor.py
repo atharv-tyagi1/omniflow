@@ -12,6 +12,8 @@ from backend.app.agents.factory import AgentFactory
 from backend.app.schemas.agent import AgentResponse
 from backend.app.services.analytics.emitter import AnalyticsEventEmitter
 from backend.app.schemas.analytics import AnalyticsEventType
+from backend.app.services.agent_service import AgentService
+from backend.app.core.agent.engine import AgentRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -73,19 +75,46 @@ class HandoffExecutor:
 
         # 2. Dispatch Target Agent
         try:
-            target_agent = AgentFactory.create_agent(handoff_record.to_agent)
-            
-            # Pass bounded_context directly as router_metadata or merge into context
-            merged_metadata = {**router_metadata, **bounded_context}
-
-            response = await target_agent.respond(
-                db=db,
-                conversation_id=conversation.id,
-                customer_id=conversation.customer_id,
-                workspace_id=conversation.workspace_id,
-                query=query,
-                router_metadata=merged_metadata
+            agent_config = await AgentService.get_active_config(
+                db=db, 
+                workspace_id=conversation.workspace_id, 
+                category=handoff_record.to_agent
             )
+            
+            merged_metadata = {**router_metadata, **bounded_context}
+            
+            if agent_config:
+                logger.info(f"Using AgentRuntime for {handoff_record.to_agent}")
+                runtime = AgentRuntime()
+                # For context, we pass the merged_metadata as conversation_history or similar, 
+                # but AgentRuntime expects list of message dicts.
+                # For Phase 21.2E, we'll format the bounded context into a system string or pass empty history.
+                history = [{"role": "system", "content": f"Context: {merged_metadata}"}]
+                
+                result = await runtime.execute_turn(
+                    conversation_id=str(conversation.id),
+                    agent_config=agent_config,
+                    user_message=query,
+                    conversation_history=history,
+                    workspace_policies="You are acting on behalf of the workspace."
+                )
+                response = AgentResponse(
+                    content=result.get("content", ""),
+                    confidence=1.0,
+                    agent_name=handoff_record.to_agent,
+                    sentiment="neutral"
+                )
+            else:
+                logger.info(f"Fallback to legacy AgentFactory for {handoff_record.to_agent}")
+                target_agent = AgentFactory.create_agent(handoff_record.to_agent)
+                response = await target_agent.respond(
+                    db=db,
+                    conversation_id=conversation.id,
+                    customer_id=conversation.customer_id,
+                    workspace_id=conversation.workspace_id,
+                    query=query,
+                    router_metadata=merged_metadata
+                )
             
             # 3. Finalize Handoff (Phase 2 - Transactional)
             try:
