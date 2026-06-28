@@ -42,24 +42,34 @@ async def verify_webhook_signature(
         )
         raise PublicAPIException("Request expired (replay protection)", status_code=403, code="REPLAY_PROTECTED")
 
+    webhook_id_str = request.path_params.get("webhook_id")
     source = request.path_params.get("source")
-    if not source:
-        raise PublicAPIException("Missing webhook source", status_code=400, code="MISSING_SOURCE")
+    
+    if webhook_id_str:
+        import uuid
+        try:
+            webhook_id = uuid.UUID(webhook_id_str)
+        except ValueError:
+            raise PublicAPIException("Invalid webhook ID", status_code=400, code="INVALID_ID")
+        stmt = select(PublicWebhook).where(PublicWebhook.id == webhook_id, PublicWebhook.is_active == True)
+        lookup_val = webhook_id_str
+    elif source:
+        stmt = select(PublicWebhook).where(PublicWebhook.source == source, PublicWebhook.is_active == True)
+        lookup_val = source
+    else:
+        raise PublicAPIException("Missing webhook identifier", status_code=400, code="MISSING_IDENTIFIER")
 
     # Read body
     body = await request.body()
     
-    # We must explicitly look up the webhook source.
-    # Note: the webhook URL contains the source but we need to ensure the source is registered.
-    stmt = select(PublicWebhook).where(PublicWebhook.source == source, PublicWebhook.is_active == True)
     result = await db.execute(stmt)
     webhook = result.scalar_one_or_none()
     
     if not webhook:
-        logger.warning(f"Webhook received for unknown or inactive source: {source}")
+        logger.warning(f"Webhook received for unknown or inactive identifier: {lookup_val}")
         log_public_telemetry(
             "public_webhook_invalid",
-            details={"reason": "invalid_source", "source": source},
+            details={"reason": "invalid_source", "identifier": lookup_val},
             latency_ms=tracker.get_latency_ms()
         )
         # Fail closed safely
