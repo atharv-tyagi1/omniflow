@@ -11,6 +11,7 @@ from backend.app.models.user import User
 from backend.app.services.router_service import RouterService
 from backend.app.controllers.conversation_controller import ConversationController
 from backend.app.api.v1.api_keys import router as api_keys_router
+from backend.app.api.v1.agents import router as agents_router
 
 
 router = APIRouter(prefix="/router", tags=["router"])

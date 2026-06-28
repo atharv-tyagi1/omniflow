@@ -50,3 +50,45 @@ class ExternalAPIError(OmniFlowError):
 
     def __init__(self, message: str = "External API error"):
         super().__init__(message=message, code="EXTERNAL_API_ERROR")
+
+
+class ConflictError(OmniFlowError):
+    """Raised when a resource conflict occurs (e.g. concurrent edits)."""
+
+    def __init__(self, message: str = "Resource conflict"):
+        super().__init__(message=message, code="CONFLICT")
+
+
+class ProviderUnavailableError(OmniFlowError):
+    """Raised when an LLM provider is down or times out."""
+
+    def __init__(self, message: str = "Provider unavailable"):
+        super().__init__(message=message, code="PROVIDER_UNAVAILABLE")
+
+
+class ToolExecutionError(OmniFlowError):
+    """Raised when an agent tool fails."""
+
+    def __init__(self, message: str = "Tool execution failed"):
+        super().__init__(message=message, code="TOOL_ERROR")
+
+
+class WorkflowExecutionError(OmniFlowError):
+    """Raised when a bound workflow fails."""
+
+    def __init__(self, message: str = "Workflow execution failed"):
+        super().__init__(message=message, code="WORKFLOW_ERROR")
+
+
+class PolicyViolationError(OmniFlowError):
+    """Raised when an agent violates workspace policy."""
+
+    def __init__(self, message: str = "Policy violation"):
+        super().__init__(message=message, code="POLICY_VIOLATION")
+
+
+class WorkspaceIsolationError(OmniFlowError):
+    """Raised when cross-workspace access is attempted."""
+
+    def __init__(self, message: str = "Workspace isolation violation"):
+        super().__init__(message=message, code="WORKSPACE_ISOLATION")

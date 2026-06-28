@@ -22,6 +22,11 @@ from backend.app.api.v1.tickets import router as tickets_router
 from backend.app.api.v1.notifications import router as notifications_router
 from backend.app.api.v1.intel import router as intel_router
 from backend.app.api.v1.api_keys import router as api_keys_router
+from backend.app.api.v1.agents import router as agents_router
+from backend.app.api.v1.agent_templates import router as agent_templates_router
+from backend.app.api.v1.agent_memory import router as agent_memory_router
+from backend.app.api.v1.agent_workflows import router as agent_workflows_router
+from backend.app.api.v1.agent_analytics import router as agent_analytics_router
 from backend.app.api.internal.v1.api import router as internal_v1_router
 from backend.app.core.exceptions import OmniFlowError
 from backend.app.core.response import error_response
@@ -75,6 +80,14 @@ app.include_router(datasets_router, prefix=settings.API_V1_STR)
 app.include_router(workflows_router, prefix=settings.API_V1_STR)
 app.include_router(router_router, prefix=settings.API_V1_STR)
 app.include_router(api_keys_router, prefix=settings.API_V1_STR)
+
+# Agent Platform - Strict Workspace Scoping
+agent_prefix = f"{settings.API_V1_STR}/workspaces/{{workspace_id}}/agents"
+app.include_router(agents_router, prefix=agent_prefix, tags=["agents"])
+app.include_router(agent_templates_router, prefix=f"{settings.API_V1_STR}/workspaces/{{workspace_id}}/agent-templates", tags=["agent-templates"])
+app.include_router(agent_memory_router, prefix=f"{agent_prefix}/{{agent_id}}/memory", tags=["agent-memory"])
+app.include_router(agent_workflows_router, prefix=f"{agent_prefix}/{{agent_id}}/workflows", tags=["agent-workflows"])
+app.include_router(agent_analytics_router, prefix=f"{agent_prefix}/{{agent_id}}/analytics", tags=["agent-analytics"])
 app.include_router(
     analytics_router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"]
 )
@@ -111,10 +124,14 @@ async def omniflow_exception_handler(request: Request, exc: OmniFlowError):
     status_code = 400
     if exc.code == "AUTHENTICATION_ERROR":
         status_code = 401
-    elif exc.code == "AUTHORIZATION_ERROR":
+    elif exc.code in ["AUTHORIZATION_ERROR", "POLICY_VIOLATION", "WORKSPACE_ISOLATION"]:
         status_code = 403
     elif exc.code == "NOT_FOUND":
         status_code = 404
+    elif exc.code == "CONFLICT":
+        status_code = 409
+    elif exc.code in ["PROVIDER_UNAVAILABLE", "TOOL_ERROR", "WORKFLOW_ERROR"]:
+        status_code = 502
 
     return JSONResponse(
         status_code=status_code,
