@@ -9,6 +9,7 @@ Architecture (strictly followed):
 import logging
 import time
 import uuid
+import asyncio
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -429,6 +430,28 @@ class AgentRuntime:
                 "The AI service is temporarily unavailable. Please try again in a moment."
             )
             run_status = "failed"
+
+        except asyncio.CancelledError as e:
+            logger.warning(f"[{request_id}] AgentRuntime execution cancelled (e.g. client disconnected).")
+            run_status = "cancelled"
+            
+            # Durably record the cancellation in a separate DB session so it survives any transaction rollback!
+            from backend.app.core.database import AsyncSessionLocal
+            from backend.app.models.agent_log import AgentLog
+            async with AsyncSessionLocal() as audit_db:
+                audit_log = AgentLog(
+                    id=uuid.uuid4(),
+                    workspace_id=workspace_id,
+                    agent_id=agent_id,
+                    run_id=run.id if run else None,
+                    level="warning",
+                    message="Agent execution cancelled (client disconnected).",
+                    details={"request_id": request_id, "reason": "client_disconnect"}
+                )
+                audit_db.add(audit_log)
+                await audit_db.commit()
+                
+            raise e
 
         except Exception as e:
             logger.error(f"[{request_id}] AgentRuntime execution error: {e}", exc_info=True)
