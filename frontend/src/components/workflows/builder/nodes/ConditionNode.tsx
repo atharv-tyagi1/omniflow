@@ -23,7 +23,7 @@ export function ConditionNode({ data, selected }: NodeProps) {
             Condition
           </h3>
           <p className="text-xs text-[var(--color-text-muted)]">
-            {data.config?.condition_type || "If / Else"}
+            {(data as any).config?.condition_type || "If / Else"}
           </p>
         </div>
       </div>

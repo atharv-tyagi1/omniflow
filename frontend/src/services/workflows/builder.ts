@@ -19,7 +19,7 @@ export const useWorkflowDraft = (workspaceId: string, workflowId: string) => {
     queryKey: ["workflow_draft", workspaceId, workflowId],
     queryFn: async (): Promise<WorkflowDraftData> => {
       const res = await fetchApi(`/api/v1/workflows/${workflowId}`)
-      return res.data
+      return (res as any).data
     },
     enabled: !!workspaceId && !!workflowId,
   })

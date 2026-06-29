@@ -18,7 +18,7 @@ export function TriggerNode({ data, selected }: NodeProps) {
             Trigger
           </h3>
           <p className="text-xs text-[var(--color-text-muted)]">
-            {data.config?.trigger_type || "Event"}
+            {(data as any).config?.trigger_type || "Event"}
           </p>
         </div>
       </div>

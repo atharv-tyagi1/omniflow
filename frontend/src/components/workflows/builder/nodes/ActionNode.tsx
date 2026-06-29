@@ -23,7 +23,7 @@ export function ActionNode({ data, selected }: NodeProps) {
             Action
           </h3>
           <p className="text-xs text-[var(--color-text-muted)]">
-            {data.config?.action_type || "Execute"}
+            {(data as any).config?.action_type || "Execute"}
           </p>
         </div>
       </div>
