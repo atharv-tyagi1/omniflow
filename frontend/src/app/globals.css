@@ -32,6 +32,30 @@
   color-scheme: dark;
 }
 
+/* ── Light theme tokens ── */
+.light {
+  color-scheme: light;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #F1F5F9;
+  --color-border-subtle: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-primary-start: #4F7CFF;
+  --color-primary-end: #3B5FCC;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #DC2626;
+  --color-info: #2563EB;
+}
+
+.light body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-text-primary);
