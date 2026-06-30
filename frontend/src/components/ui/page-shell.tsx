@@ -32,6 +32,7 @@ export function PageShell({ variant = "standard", className, children, ...props 
       )}
       data-layout-shell="PageShell"
       data-shell-variant={variant}
+      role="main"
       {...props}
     >
       {children}

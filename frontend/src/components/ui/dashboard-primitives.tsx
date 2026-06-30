@@ -6,6 +6,20 @@ import { PageShell } from "./page-shell"
 
 export { PageShell }
 
+export const GLASS_CARD_CLASSES = "bg-[var(--color-surface)]/80 backdrop-blur-md saturate-150 border border-[var(--color-border-subtle)] rounded-[var(--radius-card)] shadow-lg transition-all duration-300 hover:shadow-xl hover:border-[var(--color-border-strong)] hover:-translate-y-0.5"
+export const SOLID_CARD_CLASSES = "bg-[var(--color-surface)]/95 border border-[var(--color-border-subtle)] rounded-[var(--radius-card)] shadow-md transition-all duration-300 hover:shadow-lg hover:border-[var(--color-border-strong)] hover:-translate-y-0.5"
+
+// ─── Performance Budget Context ──────────────────────────────────────────────
+export const PerformanceContext = React.createContext({ degradeGlass: false })
+
+export function PerformanceBoundary({ degradeGlass = true, children }: { degradeGlass?: boolean, children: React.ReactNode }) {
+  return (
+    <PerformanceContext.Provider value={{ degradeGlass }}>
+      {children}
+    </PerformanceContext.Provider>
+  )
+}
+
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -19,7 +33,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 // ─── SkeletonCard ─────────────────────────────────────────────────────────────
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn("premium-card p-5 space-y-3", className)}>
+    <div className={cn(GLASS_CARD_CLASSES, "p-5 space-y-3", className)}>
       <Skeleton className="h-4 w-1/3" />
       <Skeleton className="h-8 w-1/2" />
       <Skeleton className="h-3 w-2/3" />
@@ -30,7 +44,7 @@ export function SkeletonCard({ className }: { className?: string }) {
 // ─── SkeletonChart ────────────────────────────────────────────────────────────
 export function SkeletonChart({ className }: { className?: string }) {
   return (
-    <div className={cn("premium-card p-5 space-y-4", className)}>
+    <div className={cn(GLASS_CARD_CLASSES, "p-5 space-y-4", className)}>
       <Skeleton className="h-4 w-1/4" />
       <Skeleton className="h-[280px] w-full" />
     </div>
@@ -61,7 +75,7 @@ export function ErrorState({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-1 text-xs font-medium text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors"
+          className="mt-1 text-xs font-medium text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded-sm"
         >
           Retry
         </button>
@@ -132,24 +146,37 @@ export function SectionCard({
   children,
   className,
   headerAction,
+  degradeGlass,
 }: {
   title: string
   subtitle?: string
   children: React.ReactNode
   className?: string
   headerAction?: React.ReactNode
+  degradeGlass?: boolean // explicit override
 }) {
+  const ctx = React.useContext(PerformanceContext)
+  const shouldDegrade = degradeGlass !== undefined ? degradeGlass : ctx.degradeGlass
+  
   return (
-    <div className={cn("premium-card p-5", className)}>
+    <section 
+      className={cn(shouldDegrade ? SOLID_CARD_CLASSES : GLASS_CARD_CLASSES, "p-5", className)}
+      aria-labelledby={title ? `section-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined}
+    >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-[var(--color-text-primary)]">{title}</h3>
+          <h3 
+            id={title ? `section-${title.toLowerCase().replace(/\s+/g, '-')}` : undefined}
+            className="font-semibold text-[var(--color-text-primary)]"
+          >
+            {title}
+          </h3>
           {subtitle && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{subtitle}</p>}
         </div>
         {headerAction}
       </div>
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -197,4 +224,68 @@ const dotColors: Record<string, string> = {
 export function StatusDot({ status }: { status: string }) {
   const color = dotColors[status.toLowerCase()] ?? "bg-gray-400"
   return <span className={cn("inline-block h-2 w-2 rounded-full", color)} />
+}
+
+// --- GlassMetricCard ----------------------------------------------------------
+export function GlassMetricCard({
+  title,
+  value,
+  trend,
+  trendLabel,
+  icon,
+  className,
+  degradeGlass
+}: {
+  title: string
+  value: string | number
+  trend?: { value: number; label?: string }
+  trendLabel?: string
+  icon?: React.ReactNode
+  className?: string
+  degradeGlass?: boolean
+}) {
+  const ctx = React.useContext(PerformanceContext)
+  const shouldDegrade = degradeGlass !== undefined ? degradeGlass : ctx.degradeGlass
+
+  return (
+    <div className={cn(shouldDegrade ? SOLID_CARD_CLASSES : GLASS_CARD_CLASSES, "p-5 relative overflow-hidden group", className)}>
+      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+        {icon}
+      </div>
+      <div className="relative z-10 space-y-2">
+        <h3 className="text-sm font-medium text-[var(--color-text-muted)]">{title}</h3>
+        <div className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">{value}</div>
+        {trend && (
+          <div className="flex items-center gap-1.5 text-xs">
+            <span
+              className={cn(
+                "font-medium",
+                trend.value > 0 ? "text-[var(--color-success)]" : "text-[var(--color-error)]"
+              )}
+            >
+              {trend.value > 0 ? "?" : "?"} {Math.abs(trend.value)}%
+            </span>
+            <span className="text-[var(--color-text-muted)]">{trendLabel || trend.label || "vs last month"}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- GlassTable ---------------------------------------------------------------
+export function GlassTable({
+  children,
+  className
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("w-full overflow-x-auto", className)}>
+      <table className="w-full text-left text-sm border-collapse">
+        {children}
+      </table>
+    </div>
+  )
 }

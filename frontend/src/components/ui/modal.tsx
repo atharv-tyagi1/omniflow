@@ -1,6 +1,8 @@
 import * as React from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { GLASS_CARD_CLASSES, PerformanceBoundary } from "@/components/ui/dashboard-primitives"
+import { cn } from "@/lib/utils"
 
 interface ModalProps {
   isOpen: boolean
@@ -22,7 +24,7 @@ export function Modal({ isOpen, onClose, title, description, children }: ModalPr
       />
       
       {/* Content */}
-      <div className="relative z-50 w-full max-w-md p-6 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-xl animate-in fade-in zoom-in-95 duration-200">
+      <div className={cn(GLASS_CARD_CLASSES, "relative z-50 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200")}>
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
@@ -38,8 +40,9 @@ export function Modal({ isOpen, onClose, title, description, children }: ModalPr
             <X className="h-4 w-4" />
           </Button>
         </div>
-        
-        {children}
+        <PerformanceBoundary degradeGlass={false}>
+          {children}
+        </PerformanceBoundary>
       </div>
     </div>
   )
