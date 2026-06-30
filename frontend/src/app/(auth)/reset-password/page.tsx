@@ -18,8 +18,8 @@ export default function ResetPasswordPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-white">Choose a new password</h2>
-        <p className="text-sm text-neutral-400">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Choose a new password</h2>
+        <p className="text-sm text-[var(--color-text-muted)]">
           Enter your new password below to reset your account credentials.
         </p>
       </div>
@@ -27,41 +27,41 @@ export default function ResetPasswordPage() {
       {!submitted ? (
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200" htmlFor="password">
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]" htmlFor="password">
               New Password
             </label>
             <input
               id="password"
               type="password"
               required
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200" htmlFor="confirm_password">
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]" htmlFor="confirm_password">
               Confirm Password
             </label>
             <input
               id="confirm_password"
               type="password"
               required
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500"
             />
           </div>
 
-          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button type="submit" className="ap-focus w-full primary-gradient-bg text-white border-none shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200">
             Reset Password
           </Button>
         </form>
       ) : (
         <div className="space-y-4 text-center">
-          <p className="text-sm text-neutral-300">
+          <p className="text-sm text-[var(--color-text-muted)]">
             Your password has been successfully reset.
           </p>
           <div className="pt-4">
-            <Link href="/login">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Link href="/login" className="ap-focus rounded-lg block">
+              <Button className="ap-focus w-full primary-gradient-bg text-white border-none shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200">
                 Proceed to Login
               </Button>
             </Link>

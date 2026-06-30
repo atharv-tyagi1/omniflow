@@ -19,8 +19,8 @@ export default function ForgotPasswordPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-white">Reset password</h2>
-        <p className="text-sm text-neutral-400">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Reset password</h2>
+        <p className="text-sm text-[var(--color-text-muted)]">
           Enter your email and we'll send you a link to reset your password.
         </p>
       </div>
@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
       {!submitted ? (
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200" htmlFor="email">
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]" htmlFor="email">
               Email
             </label>
             <input
@@ -36,16 +36,16 @@ export default function ForgotPasswordPage() {
               type="email"
               required
               placeholder="name@example.com"
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500"
             />
           </div>
 
-          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button type="submit" className="ap-focus w-full primary-gradient-bg text-white border-none shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200">
             Send Reset Link
           </Button>
           
           <div className="text-center mt-4">
-            <Link href="/login" className="text-sm text-neutral-400 hover:text-white transition-colors">
+            <Link href="/login" className="ap-focus text-sm text-indigo-400 hover:text-indigo-300 transition-colors rounded-sm">
               Back to login
             </Link>
           </div>
@@ -57,12 +57,12 @@ export default function ForgotPasswordPage() {
               <Mail className="h-6 w-6" />
             </div>
           </div>
-          <p className="text-sm text-neutral-300">
+          <p className="text-sm text-[var(--color-text-muted)]">
             If an account exists for that email, we have sent a password reset link.
           </p>
           <div className="pt-4">
-            <Link href="/login">
-              <Button variant="outline" className="w-full">
+            <Link href="/login" className="ap-focus rounded-lg block">
+              <Button className="w-full border border-[var(--color-border-strong)] bg-transparent text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)]">
                 Return to Login
               </Button>
             </Link>
