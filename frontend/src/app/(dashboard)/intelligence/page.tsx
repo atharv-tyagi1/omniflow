@@ -45,7 +45,7 @@ export default function IntelligencePage() {
   return (
     <PageShell variant="wide">
       <PageHeader title="Conversation Intelligence" subtitle="Intent, sentiment & topic analysis">
-        <div className="flex items-center gap-1 rounded-lg bg-white/5 p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] p-1">
           {rangeOptions.map((d) => (
             <button
               key={d}

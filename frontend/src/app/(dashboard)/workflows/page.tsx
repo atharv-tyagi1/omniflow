@@ -3,9 +3,10 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useWorkflows } from "@/services/workflows/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
+import { PageHeader, PageShell, Badge, SkeletonCard, ErrorState, EmptyState, GLASS_CARD_CLASSES } from "@/components/ui/dashboard-primitives"
 import { Workflow, Play, CheckCircle, XCircle, RefreshCw, Clock, Plus } from "lucide-react"
 import { fetchApi } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
 const statusConfig: Record<string, { variant: any; label: string }> = {
   active: { variant: "success", label: "Active" },
@@ -20,7 +21,7 @@ import Link from "next/link"
 function WorkflowCard({ wf }: { wf: any }) {
   const cfg = statusConfig[wf.status?.toLowerCase() ?? "inactive"] ?? statusConfig.inactive
   return (
-    <div className="premium-card p-5 space-y-4">
+    <div className={cn(GLASS_CARD_CLASSES, "p-5 space-y-4")}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center">
@@ -42,7 +43,7 @@ function WorkflowCard({ wf }: { wf: any }) {
           { icon: <XCircle className="h-3.5 w-3.5 text-red-400" />, label: "Failures", value: wf.failure_count ?? "—" },
           { icon: <RefreshCw className="h-3.5 w-3.5 text-amber-400" />, label: "Retries", value: wf.retry_count ?? "—" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-lg bg-white/[0.03] p-2.5 space-y-1">
+          <div key={stat.label} className="rounded-lg bg-[var(--color-surface-elevated)] p-2.5 space-y-1">
             <div className="flex items-center justify-center">{stat.icon}</div>
             <p className="text-sm font-bold text-[var(--color-text-primary)]">{stat.value}</p>
             <p className="text-[10px] text-[var(--color-text-muted)]">{stat.label}</p>
@@ -50,7 +51,7 @@ function WorkflowCard({ wf }: { wf: any }) {
         ))}
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+      <div className="flex items-center justify-between pt-3 border-t border-[var(--color-border-subtle)]">
         {wf.created_at ? (
           <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
             <Clock className="h-3 w-3" />
@@ -126,7 +127,7 @@ export default function WorkflowsPage() {
       </div>
 
       {isCreating && (
-        <div className="mb-8 p-6 premium-card border border-violet-500/20 bg-violet-500/5">
+        <div className={cn(GLASS_CARD_CLASSES, "mb-8 p-6 border-violet-500/20 bg-violet-500/5")}>
           <h3 className="text-lg font-semibold mb-4">Create Minimal Workflow</h3>
           <p className="text-sm text-[var(--color-text-muted)] mb-4">
             The backend schema currently supports defining a workflow by name and trigger type. Visual node orchestration is coming in the next engine update.
@@ -138,7 +139,7 @@ export default function WorkflowsPage() {
                 type="text" 
                 value={newWorkflowName}
                 onChange={(e) => setNewWorkflowName(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
+                className="ap-focus w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
                 placeholder="e.g. Lead Qualification"
               />
             </div>
@@ -147,7 +148,7 @@ export default function WorkflowsPage() {
               <select 
                 value={newWorkflowTrigger}
                 onChange={(e) => setNewWorkflowTrigger(e.target.value)}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
+                className="ap-focus w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
               >
                 <option value="webhook">Webhook</option>
                 <option value="schedule">Schedule</option>
@@ -172,7 +173,7 @@ export default function WorkflowsPage() {
           { label: "Active", value: stats.active, icon: <CheckCircle className="h-4 w-4 text-emerald-400" /> },
           { label: "Failed", value: stats.failed, icon: <XCircle className="h-4 w-4 text-red-400" /> },
         ].map((s) => (
-          <div key={s.label} className="premium-card p-5 flex items-center gap-4">
+          <div key={s.label} className={cn(GLASS_CARD_CLASSES, "p-5 flex items-center gap-4")}>
             <div className="text-[var(--color-text-muted)]">{s.icon}</div>
             <div>
               <p className="text-2xl font-bold text-[var(--color-text-primary)]">{s.value}</p>

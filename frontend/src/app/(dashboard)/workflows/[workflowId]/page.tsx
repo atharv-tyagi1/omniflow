@@ -68,11 +68,11 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ work
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <header className="h-14 border-b border-white/10 px-4 flex items-center justify-between shrink-0 bg-[var(--color-bg-primary)] z-20">
+      <header className="h-14 border-b border-[var(--color-border-subtle)] px-4 flex items-center justify-between shrink-0 bg-[var(--color-bg-primary)] z-20">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/workflows")}
-            className="p-1.5 rounded-md hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
+            className="p-1.5 rounded-md hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>

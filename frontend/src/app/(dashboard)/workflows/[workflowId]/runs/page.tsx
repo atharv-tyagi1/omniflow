@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import { useWorkflowRuns } from "@/services/workflows/queries"
-import { PageShell, Badge, SkeletonCard, ErrorState, EmptyState } from "@/components/ui/dashboard-primitives"
+import { PageShell, Badge, SkeletonCard, ErrorState, EmptyState, SectionCard, GlassTable } from "@/components/ui/dashboard-primitives"
 import { ArrowLeft, Clock, History, CheckCircle, XCircle, Play } from "lucide-react"
 
 export default function WorkflowRunsPage({ params }: { params: Promise<{ workflowId: string }> }) {
@@ -32,7 +32,7 @@ export default function WorkflowRunsPage({ params }: { params: Promise<{ workflo
       <div className="flex items-center gap-4 mb-8">
         <button 
           onClick={() => router.push("/workflows")}
-          className="p-2 rounded-md hover:bg-white/10 text-[var(--color-text-muted)] transition-colors"
+          className="p-2 rounded-md hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -42,7 +42,7 @@ export default function WorkflowRunsPage({ params }: { params: Promise<{ workflo
         </div>
       </div>
 
-      <div className="premium-card overflow-hidden">
+      <SectionCard title="Workflow Runs" className="p-0 overflow-hidden">
         {isLoading ? (
           <div className="p-8 space-y-4">
             <SkeletonCard className="h-12 w-full" />
@@ -56,8 +56,8 @@ export default function WorkflowRunsPage({ params }: { params: Promise<{ workflo
             <EmptyState title="No Executions Yet" description="This workflow has not been triggered yet." icon={<History className="h-10 w-10"/>} />
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 border-b border-white/10 text-[var(--color-text-muted)]">
+          <GlassTable>
+            <thead className="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)] text-[var(--color-text-muted)]">
               <tr>
                 <th className="px-6 py-4 font-medium">Run ID</th>
                 <th className="px-6 py-4 font-medium">Status</th>
@@ -65,9 +65,9 @@ export default function WorkflowRunsPage({ params }: { params: Promise<{ workflo
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-[var(--color-border-subtle)]">
               {list.map((run: any) => (
-                <tr key={run.id} className="hover:bg-white/[0.02] transition-colors">
+                <tr key={run.id} className="hover:bg-[var(--color-surface-elevated)] transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-[var(--color-text-primary)]">
                     {run.id}
                   </td>
@@ -91,9 +91,9 @@ export default function WorkflowRunsPage({ params }: { params: Promise<{ workflo
                 </tr>
               ))}
             </tbody>
-          </table>
+          </GlassTable>
         )}
-      </div>
+      </SectionCard>
     </PageShell>
   )
 }

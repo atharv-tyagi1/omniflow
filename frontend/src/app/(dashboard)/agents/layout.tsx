@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import './agent-platform.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'

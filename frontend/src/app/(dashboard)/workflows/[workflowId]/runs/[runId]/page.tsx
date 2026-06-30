@@ -52,11 +52,11 @@ export default function RunDetailsPage({ params }: { params: Promise<{ workflowI
   return (
     <div className="h-screen w-full flex flex-col bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <header className="h-14 border-b border-white/10 px-4 flex items-center justify-between shrink-0 bg-[var(--color-bg-primary)] z-20">
+      <header className="h-14 border-b border-[var(--color-border-subtle)] px-4 flex items-center justify-between shrink-0 bg-[var(--color-bg-primary)] z-20">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push(`/workflows/${workflowId}/runs`)}
-            className="p-1.5 rounded-md hover:bg-white/10 text-[var(--color-text-muted)] hover:text-white transition-colors"
+            className="p-1.5 rounded-md hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -75,8 +75,8 @@ export default function RunDetailsPage({ params }: { params: Promise<{ workflowI
       {/* Main Content */}
       <main className="flex-1 overflow-hidden flex">
         {/* Left pane: Step Timeline */}
-        <div className="w-80 border-r border-white/10 bg-[var(--color-bg-secondary)] flex flex-col">
-          <div className="p-4 border-b border-white/10">
+        <div className="w-80 border-r border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)] flex flex-col">
+          <div className="p-4 border-b border-[var(--color-border-subtle)]">
             <h2 className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Execution Steps</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -90,7 +90,7 @@ export default function RunDetailsPage({ params }: { params: Promise<{ workflowI
                   className={`w-full text-left p-3 rounded-lg border transition-all ${
                     (selectedStepId ? selectedStepId === step.id : idx === 0)
                       ? "bg-violet-500/10 border-violet-500/50 shadow-md"
-                      : "bg-[var(--color-bg-primary)] border-white/5 hover:border-white/20"
+                      : "bg-[var(--color-bg-primary)] border-[var(--color-border-subtle)] hover:border-[var(--color-border-strong)]"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">

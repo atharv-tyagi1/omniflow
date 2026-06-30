@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { useAnalystQuery, useAnalystLimits } from "@/services/analyst/queries"
-import { PageHeader, ErrorState, SectionCard, PageShell } from "@/components/ui/dashboard-primitives"
+import { PageHeader, ErrorState, SectionCard, PageShell, GLASS_CARD_CLASSES } from "@/components/ui/dashboard-primitives"
+import { cn } from "@/lib/utils"
 import { hasCapability } from "@/lib/api-capabilities/registry"
 import { Send, Bot, User, AlertCircle, Loader2, Sparkles } from "lucide-react"
 
@@ -79,7 +80,7 @@ export default function BusinessAnalystPage() {
     return (
       <PageShell variant="standard">
         <PageHeader title="AI Business Analyst" subtitle="Natural language business intelligence" />
-        <div className="premium-card p-10 flex flex-col items-center gap-4 text-center">
+        <div className={cn(GLASS_CARD_CLASSES, "p-10 flex flex-col items-center gap-4 text-center")}>
           <Sparkles className="h-10 w-10 text-violet-400" />
           <p className="font-semibold text-[var(--color-text-secondary)]">Business Analyst Disabled</p>
           <p className="text-sm text-[var(--color-text-muted)] max-w-md">
@@ -120,7 +121,7 @@ export default function BusinessAnalystPage() {
                   <button
                     key={q}
                     onClick={() => sendMessage(q)}
-                    className="text-left px-4 py-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 text-sm text-[var(--color-text-secondary)] transition-all"
+                    className="text-left px-4 py-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] text-sm text-[var(--color-text-secondary)] transition-all"
                   >
                     {q}
                   </button>
@@ -142,10 +143,10 @@ export default function BusinessAnalystPage() {
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === "user"
-                      ? "bg-indigo-500/20 text-[var(--color-text-primary)] rounded-tr-sm"
+                      ? "bg-[var(--color-primary-start)]/20 text-[var(--color-text-primary)] rounded-tr-sm"
                       : msg.error
-                      ? "bg-red-500/10 border border-red-500/20 text-red-300 rounded-tl-sm"
-                      : "bg-white/[0.04] border border-white/8 text-[var(--color-text-secondary)] rounded-tl-sm"
+                      ? "bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] rounded-tl-sm"
+                      : "bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] rounded-tl-sm"
                   }`}
                 >
                   {msg.error && <AlertCircle className="inline h-3.5 w-3.5 mr-1 mb-0.5 text-red-400" />}
@@ -162,7 +163,7 @@ export default function BusinessAnalystPage() {
               <div className="w-8 h-8 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">
                 <Bot className="h-4 w-4" />
               </div>
-              <div className="bg-white/[0.04] border border-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
+              <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded-2xl rounded-tl-sm px-4 py-3">
                 <Loader2 className="h-4 w-4 animate-spin text-[var(--color-text-muted)]" />
               </div>
             </div>
@@ -170,7 +171,7 @@ export default function BusinessAnalystPage() {
         </div>
 
         {/* Input Area */}
-        <div className="liquid-glass rounded-2xl p-3 flex gap-2 items-end">
+        <div className="bg-[var(--color-surface)]/60 backdrop-blur-md rounded-2xl p-3 flex gap-2 items-end border border-[var(--color-border-subtle)]">
           <textarea
             ref={inputRef}
             value={input}

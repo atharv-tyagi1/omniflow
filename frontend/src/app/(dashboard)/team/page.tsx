@@ -9,7 +9,7 @@ import { api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { EmptyState } from "@/components/ui/empty-state"
-import { SkeletonCard, PageShell } from "@/components/ui/dashboard-primitives"
+import { SkeletonCard, PageShell, PageHeader, SectionCard, GlassTable } from "@/components/ui/dashboard-primitives"
 
 function TeamPageContent() {
   const { user } = useAuth()
@@ -56,48 +56,44 @@ function TeamPageContent() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">Team Members</h2>
-          <p className="text-sm text-neutral-400 mt-1">
-            Manage your workspace members and their roles.
-          </p>
-        </div>
+      <PageHeader 
+        title="Team Members"
+        subtitle="Manage your workspace members and their roles."
+      >
         {isOwnerOrAdmin && (
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled>
+          <Button className="ap-focus primary-gradient-bg text-white shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200 border-none" disabled>
             Invite Member (Coming Soon)
           </Button>
         )}
-      </div>
-
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-neutral-950 text-neutral-400 border-b border-neutral-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">User</th>
-                <th className="px-6 py-4 font-medium">Role</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800">
-              {members?.map((member: any) => (
-                <tr key={member.id} className="hover:bg-neutral-800/50 transition-colors">
+      </PageHeader>
+      
+      <SectionCard title="Members Directory" className="p-0 overflow-hidden">
+        <GlassTable>
+          <thead className="bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border-b border-[var(--color-border-subtle)]">
+            <tr>
+              <th className="px-6 py-4 font-medium">User</th>
+              <th className="px-6 py-4 font-medium">Role</th>
+              <th className="px-6 py-4 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-border-subtle)]">
+            {members?.map((member: any) => (
+              <tr key={member.id} className="hover:bg-[var(--color-surface-elevated)] transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
                         {member.full_name?.charAt(0) || member.email?.charAt(0) || "U"}
                       </div>
                       <div>
-                        <div className="font-medium text-neutral-200">{member.full_name || "Unknown"}</div>
-                        <div className="text-xs text-neutral-500">{member.email}</div>
+                        <div className="font-medium text-[var(--color-text-primary)]">{member.full_name || "Unknown"}</div>
+                        <div className="text-xs text-[var(--color-text-muted)]">{member.email}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     {isOwnerOrAdmin && member.id !== user?.id && member.role !== "owner" ? (
                       <select
-                        className="bg-neutral-950 border border-neutral-800 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="ap-focus bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded px-2 py-1 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-indigo-500"
                         value={member.role}
                         onChange={(e) => roleMutation.mutate({ userId: member.id, role: e.target.value })}
                         disabled={roleMutation.isPending}
@@ -106,28 +102,27 @@ function TeamPageContent() {
                         <option value="member">Member</option>
                       </select>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs font-medium text-neutral-300 capitalize">
+                      <span className="inline-flex items-center rounded-full bg-[var(--color-surface-elevated)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-text-primary)] capitalize border border-[var(--color-border-subtle)]">
                         {member.role}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-400" disabled>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[var(--color-text-muted)]" disabled>
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-          {(!members || members.length === 0) && (
-            <EmptyState 
-              title="No members found" 
-              description="It looks like you're the only one here." 
-            />
-          )}
-        </div>
-      </div>
+        </GlassTable>
+        {(!members || members.length === 0) && (
+          <EmptyState 
+            title="No members found" 
+            description="It looks like you're the only one here." 
+          />
+        )}
+      </SectionCard>
     </div>
   )
 }

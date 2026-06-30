@@ -19,7 +19,7 @@ function useTelegramHealth(workspaceId: string) {
 
 function StatRow({ label, value, icon }: { label: string; value: any; icon: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-[var(--color-border-subtle)] last:border-0">
       <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
         <span className="text-[var(--color-text-muted)]">{icon}</span>
         {label}

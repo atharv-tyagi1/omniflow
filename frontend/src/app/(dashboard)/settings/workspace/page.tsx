@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
-import { PageShell } from "@/components/ui/dashboard-primitives"
+import { PageShell, SectionCard, PageHeader } from "@/components/ui/dashboard-primitives"
 
 const workspaceSchema = z.object({
   name: z.string().min(1, "Workspace name is required."),
@@ -66,19 +66,19 @@ export default function WorkspaceSettingsPage() {
     updateMutation.mutate(data)
   }
 
-  if (isLoading) return <div className="text-neutral-400">Loading workspace...</div>
+  if (isLoading) return <div className="text-[var(--color-text-muted)]">Loading workspace...</div>
   if (isError) return <div className="text-red-400">Failed to load workspace.</div>
 
   const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin"
 
   return (
     <PageShell variant="standard">
-      <div>
-        <h3 className="text-lg font-medium text-white">Workspace Settings</h3>
-        <p className="text-sm text-neutral-400">Manage your organization's workspace preferences.</p>
-      </div>
+      <PageHeader 
+        title="Workspace Settings"
+        subtitle="Manage your organization's workspace preferences."
+      />
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <SectionCard title="Workspace Configuration" className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-md">
           {successMsg && (
             <div className="p-3 bg-green-900/30 border border-green-500/50 rounded-lg text-sm text-green-200">
@@ -92,21 +92,21 @@ export default function WorkspaceSettingsPage() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200">Workspace Name</label>
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]">Workspace Name</label>
             <input
               {...register("name")}
               disabled={!isOwnerOrAdmin}
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-indigo-500 disabled:opacity-50"
             />
             {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200">Timezone</label>
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]">Timezone</label>
             <select
               {...register("timezone")}
               disabled={!isOwnerOrAdmin}
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-indigo-500 disabled:opacity-50"
             >
               <option value="UTC">UTC</option>
               <option value="America/New_York">America/New_York</option>
@@ -116,16 +116,16 @@ export default function WorkspaceSettingsPage() {
           </div>
 
           {isOwnerOrAdmin && (
-            <Button type="submit" disabled={updateMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button type="submit" disabled={updateMutation.isPending} className="ap-focus primary-gradient-bg text-white border-none shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save Workspace
             </Button>
           )}
           {!isOwnerOrAdmin && (
-            <p className="text-xs text-neutral-500">Only workspace administrators can edit these settings.</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Only workspace administrators can edit these settings.</p>
           )}
         </form>
-      </div>
+      </SectionCard>
     </PageShell>
   )
 }

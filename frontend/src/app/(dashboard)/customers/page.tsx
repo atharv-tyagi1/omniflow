@@ -3,12 +3,13 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useCustomers } from "@/services/customers/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, PageShell } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, PageShell, GLASS_CARD_CLASSES } from "@/components/ui/dashboard-primitives"
+import { cn } from "@/lib/utils"
 import { Search, Users, Mail, Phone, Calendar } from "lucide-react"
 
 function CustomerCard({ customer }: { customer: any }) {
   return (
-    <div className="premium-card p-5 hover:border-white/20 transition-all cursor-pointer group">
+    <div className={cn(GLASS_CARD_CLASSES, "p-5 hover:border-[var(--color-border-strong)] cursor-pointer group")}>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-500/30 flex items-center justify-center shrink-0 text-sm font-semibold text-indigo-300">
           {(customer.name || customer.email || "?").charAt(0).toUpperCase()}
@@ -32,7 +33,7 @@ function CustomerCard({ customer }: { customer: any }) {
         </div>
       </div>
       {customer.external_id && (
-        <div className="mt-3 pt-3 border-t border-white/5">
+        <div className="mt-3 pt-3 border-t border-[var(--color-border-subtle)]">
           <span className="text-xs text-[var(--color-text-muted)]">ID: {customer.external_id}</span>
         </div>
       )}
@@ -78,7 +79,7 @@ export default function CustomersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search customers…"
-          className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
+          className="ap-focus w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--color-background)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
         />
       </div>
 

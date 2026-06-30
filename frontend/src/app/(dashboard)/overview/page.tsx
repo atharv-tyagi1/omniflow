@@ -125,7 +125,7 @@ export default function OverviewPage() {
                 { label: "Escalation Rate", icon: <AlertTriangle className="h-4 w-4 text-amber-400" />, value: "—" },
                 { label: "Messages Processed", icon: <Activity className="h-4 w-4 text-emerald-400" />, value: "—" },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                <div key={item.label} className="flex items-center justify-between py-2 border-b border-[var(--color-border-subtle)] last:border-0">
                   <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                     {item.icon}
                     {item.label}

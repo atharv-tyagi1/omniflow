@@ -9,7 +9,8 @@ import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { api } from "@/lib/api"
-import { PageShell } from "@/components/ui/dashboard-primitives"
+import { PageShell, SectionCard, PageHeader } from "@/components/ui/dashboard-primitives"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Name is required."),
@@ -52,16 +53,16 @@ export default function GeneralSettingsPage() {
     }
   }
 
-  if (!user) return <div className="text-neutral-400">Loading profile...</div>
+  if (!user) return <div className="text-[var(--color-text-muted)]">Loading profile...</div>
 
   return (
     <PageShell variant="standard">
-      <div>
-        <h3 className="text-lg font-medium text-white">General Information</h3>
-        <p className="text-sm text-neutral-400">Update your personal account details.</p>
-      </div>
+      <PageHeader 
+        title="General Information"
+        subtitle="Update your personal account details."
+      />
       
-      <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+      <SectionCard title="Profile Details" className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-md">
           {successMsg && (
             <div className="p-3 bg-green-900/30 border border-green-500/50 rounded-lg text-sm text-green-200">
@@ -75,31 +76,40 @@ export default function GeneralSettingsPage() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200">Full Name</label>
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]">Full Name</label>
             <input
               {...register("full_name")}
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-white focus:ring-2 focus:ring-indigo-500"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-background)] border border-[var(--color-border-strong)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-indigo-500"
             />
             {errors.full_name && <p className="text-xs text-red-400">{errors.full_name.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-200">Email Address</label>
+            <label className="text-sm font-medium text-[var(--color-text-secondary)]">Email Address</label>
             <input
               {...register("email")}
               type="email"
               disabled
-              className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-500 cursor-not-allowed"
+              className="ap-focus w-full px-3 py-2 bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded-lg text-sm text-[var(--color-text-muted)] cursor-not-allowed"
             />
-            <p className="text-xs text-neutral-500">Email addresses cannot be changed directly.</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Email addresses cannot be changed directly.</p>
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button type="submit" disabled={isSubmitting} className="ap-focus primary-gradient-bg text-white border-none shadow-[0_0_12px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all duration-200">
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Save Changes
           </Button>
         </form>
-      </div>
+      </SectionCard>
+      <SectionCard title="Appearance" className="max-w-2xl mt-6">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-[var(--color-text-secondary)]">Theme Preference</label>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <span className="text-xs text-[var(--color-text-muted)]">Choose your preferred visual mode across the platform.</span>
+          </div>
+        </div>
+      </SectionCard>
     </PageShell>
   )
 }

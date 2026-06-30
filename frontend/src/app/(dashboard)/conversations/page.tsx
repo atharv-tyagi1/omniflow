@@ -3,7 +3,8 @@
 import * as React from "react"
 import { useAuth } from "@/context/AuthContext"
 import { useConversations } from "@/services/conversations/queries"
-import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, PageShell } from "@/components/ui/dashboard-primitives"
+import { PageHeader, SkeletonCard, ErrorState, EmptyState, Badge, StatusDot, PageShell, GLASS_CARD_CLASSES } from "@/components/ui/dashboard-primitives"
+import { cn } from "@/lib/utils"
 import { Search, Filter, MessageSquare, Clock, ChevronRight } from "lucide-react"
 
 const CHANNEL_OPTIONS = ["all", "web", "telegram", "voice", "api"]
@@ -17,7 +18,7 @@ function ConversationRow({ conv }: { conv: any }) {
     escalated: "error",
   }
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer group">
+    <div className={cn(GLASS_CARD_CLASSES, "flex items-center gap-4 p-4 hover:bg-[var(--color-surface-hover)] cursor-pointer group")}>
       <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
         <MessageSquare className="h-4 w-4 text-indigo-400" />
       </div>
@@ -82,20 +83,20 @@ export default function ConversationsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations…"
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="ap-focus w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--color-background)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-indigo-500/50 transition-colors"
           />
         </div>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-[var(--color-text-secondary)] focus:outline-none focus:border-indigo-500/50"
+          className="ap-focus px-3 py-2 rounded-xl bg-[var(--color-background)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] focus:outline-none focus:border-indigo-500/50"
         >
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s === "all" ? "All Statuses" : s}</option>)}
         </select>
         <select
           value={channel}
           onChange={(e) => setChannel(e.target.value)}
-          className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-sm text-[var(--color-text-secondary)] focus:outline-none focus:border-indigo-500/50"
+          className="ap-focus px-3 py-2 rounded-xl bg-[var(--color-background)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] focus:outline-none focus:border-indigo-500/50"
         >
           {CHANNEL_OPTIONS.map((c) => <option key={c} value={c}>{c === "all" ? "All Channels" : c}</option>)}
         </select>

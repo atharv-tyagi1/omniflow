@@ -11,7 +11,7 @@ import {
 } from "@/components/api-management/ApiKeyModals"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { PageShell } from "@/components/ui/dashboard-primitives"
+import { PageShell, PageHeader } from "@/components/ui/dashboard-primitives"
 
 export default function ApiManagementPage() {
   const isEnabled = hasCapability("apiKeys")
@@ -22,12 +22,10 @@ export default function ApiManagementPage() {
   if (!isEnabled) {
     return (
       <PageShell variant="standard">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">API Management</h1>
-          <p className="text-[var(--color-text-muted)]">
-            Manage your API keys and webhook integrations.
-          </p>
-        </div>
+        <PageHeader 
+          title="API Management"
+          subtitle="Manage your API keys and webhook integrations."
+        />
         <EmptyState 
           variant="coming-soon" 
           title="API Management Portal Coming Soon"
@@ -42,12 +40,10 @@ export default function ApiManagementPage() {
   return (
     <PageShell variant="standard">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">API Management</h1>
-          <p className="text-[var(--color-text-muted)]">
-            Manage your API keys and webhook integrations.
-          </p>
-        </div>
+        <PageHeader 
+          title="API Management"
+          subtitle="Manage your API keys and webhook integrations."
+        />
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Create API Key
