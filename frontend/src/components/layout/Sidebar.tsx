@@ -17,7 +17,7 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        'flex flex-col liquid-glass-sidebar border-r border-[var(--color-border-strong)] transition-all duration-300',
+        'flex flex-col bg-[rgba(2,6,23,0.85)] backdrop-blur-[40px] saturate-[1.2] border-r border-[var(--color-border-subtle)] transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
         className
       )}

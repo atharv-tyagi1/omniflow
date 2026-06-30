@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { cn } from "@/lib/utils"
 
 export interface DashboardWidgetProps {
   title: string
@@ -14,7 +15,9 @@ export interface DashboardWidgetProps {
   children: React.ReactNode
   className?: string
   headerAction?: React.ReactNode
+  degradeGlass?: boolean
 }
+import { GLASS_CARD_CLASSES, SOLID_CARD_CLASSES, PerformanceContext } from "@/components/ui/dashboard-primitives"
 
 export function DashboardWidget({
   title,
@@ -24,10 +27,14 @@ export function DashboardWidget({
   onRetry,
   children,
   className,
-  headerAction
+  headerAction,
+  degradeGlass
 }: DashboardWidgetProps) {
+  const ctx = React.useContext(PerformanceContext)
+  const shouldDegrade = degradeGlass !== undefined ? degradeGlass : ctx?.degradeGlass
+
   return (
-    <Card className={className}>
+    <Card className={cn(shouldDegrade ? SOLID_CARD_CLASSES : GLASS_CARD_CLASSES, className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-medium">{title}</CardTitle>

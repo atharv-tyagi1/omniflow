@@ -10,7 +10,10 @@ export interface MetricCardProps {
   trendLabel?: string
   icon?: React.ReactNode
   className?: string
+  degradeGlass?: boolean
 }
+
+import { GLASS_CARD_CLASSES, SOLID_CARD_CLASSES, PerformanceContext } from "@/components/ui/dashboard-primitives"
 
 export function MetricCard({
   title,
@@ -19,13 +22,16 @@ export function MetricCard({
   trendLabel,
   icon,
   className,
+  degradeGlass,
 }: MetricCardProps) {
   const isPositive = trend && trend > 0
   const isNegative = trend && trend < 0
   const isNeutral = trend === 0 || trend === undefined
+  const ctx = React.useContext(PerformanceContext)
+  const shouldDegrade = degradeGlass !== undefined ? degradeGlass : ctx?.degradeGlass
 
   return (
-    <Card className={cn("premium-card overflow-hidden", className)}>
+    <Card className={cn(shouldDegrade ? SOLID_CARD_CLASSES : GLASS_CARD_CLASSES, "overflow-hidden", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium text-[var(--color-text-muted)]">
           {title}

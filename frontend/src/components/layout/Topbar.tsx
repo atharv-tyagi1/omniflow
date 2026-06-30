@@ -5,6 +5,7 @@ import { Search, Bell, Menu, Plus } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface TopbarProps {
   onMenuClick?: () => void
@@ -62,9 +63,11 @@ export function Topbar({ onMenuClick, className }: TopbarProps) {
           <span className="text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded px-1 py-0.5 font-mono">⌘K</span>
         </div>
       </form>
-
+      
       {/* Actions */}
       <div className="flex items-center gap-3 flex-shrink-0">
+        <ThemeToggle />
+        
         {/* Notification bell */}
         <button
           className="ap-focus relative h-8 w-8 flex items-center justify-center rounded-md text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-elevated)] transition-colors"
