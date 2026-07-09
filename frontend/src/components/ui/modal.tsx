@@ -24,8 +24,13 @@ export function Modal({ isOpen, onClose, title, description, children }: ModalPr
       />
       
       {/* Content */}
-      <div className={cn(GLASS_CARD_CLASSES, "relative z-50 w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200")}>
-        <div className="flex items-start justify-between mb-4">
+      <div className={cn(
+        GLASS_CARD_CLASSES, 
+        "relative z-50 w-full max-w-[95vw] md:max-w-md max-h-[85vh] overflow-hidden flex flex-col p-0",
+        "mt-auto md:mt-0 mb-0 md:mb-auto rounded-b-none md:rounded-[var(--radius-card)]", // mobile stacking vs desktop
+        "animate-in fade-in zoom-in-95 slide-in-from-bottom-10 md:slide-in-from-bottom-0 duration-200"
+      )}>
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-white/5 shrink-0">
           <div>
             <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
               {title}
@@ -40,9 +45,11 @@ export function Modal({ isOpen, onClose, title, description, children }: ModalPr
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <PerformanceBoundary degradeGlass={false}>
-          {children}
-        </PerformanceBoundary>
+        <div className="p-6 pt-4 overflow-y-auto">
+          <PerformanceBoundary degradeGlass={false}>
+            {children}
+          </PerformanceBoundary>
+        </div>
       </div>
     </div>
   )
