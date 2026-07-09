@@ -12,9 +12,39 @@ export const SOLID_CARD_CLASSES = "bg-[var(--color-surface)]/95 border border-[v
 // ─── Performance Budget Context ──────────────────────────────────────────────
 export const PerformanceContext = React.createContext({ degradeGlass: false })
 
-export function PerformanceBoundary({ degradeGlass = true, children }: { degradeGlass?: boolean, children: React.ReactNode }) {
+export function PerformanceBoundary({ 
+  degradeGlass, 
+  children,
+  rowCount,
+  widgetCount
+}: { 
+  degradeGlass?: boolean, 
+  children: React.ReactNode,
+  rowCount?: number,
+  widgetCount?: number
+}) {
+  const [shouldDegrade, setShouldDegrade] = React.useState(degradeGlass ?? false)
+
+  React.useEffect(() => {
+    if (degradeGlass !== undefined) {
+      setShouldDegrade(degradeGlass)
+      return
+    }
+    let degrade = false
+    if (rowCount !== undefined && rowCount > 50) degrade = true
+    if (widgetCount !== undefined && widgetCount > 8) degrade = true
+    if (typeof navigator !== 'undefined') {
+      if ('connection' in navigator) {
+        const conn = (navigator as any).connection
+        if (conn && conn.saveData) degrade = true
+      }
+      if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) degrade = true
+    }
+    setShouldDegrade(degrade)
+  }, [degradeGlass, rowCount, widgetCount])
+
   return (
-    <PerformanceContext.Provider value={{ degradeGlass }}>
+    <PerformanceContext.Provider value={{ degradeGlass: shouldDegrade }}>
       {children}
     </PerformanceContext.Provider>
   )
